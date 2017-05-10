@@ -1,0 +1,158 @@
+options {
+	STATIC = false;
+}
+
+PARSER_BEGIN(FilterELParser)
+package com.github.gdjennings.elrest;
+
+import java.io.StringReader;
+import java.io.Reader;
+
+public class FilterELParser {
+
+    public FilterELParser(String s) 
+    {
+        this((Reader)(new StringReader(s))); 
+        
+    }
+    
+   
+    public static void main(String args[])
+    {
+        try
+        {
+                String query = args[0];
+                FilterELParser parser = new FilterELParser(query);
+                parser.parse();
+        }
+        catch(Exception e)
+        {
+                e.printStackTrace();
+        }
+    }
+}
+PARSER_END(FilterELParser) 
+
+/**  And now, the actual parsing specifications...... */
+
+/** Skip these characters, they are considered "white space" **/
+SKIP :                              
+{
+    " "
+    | "\t"
+    | "\r"
+    | "\n"
+
+}
+
+
+TOKEN: /*RESERVED TOKENS FOR UQL */
+{
+      <AND: "and">
+   |  <OR:  "or">
+   |  <LPAREN: "(">
+   |  <RPAREN: ")">
+   |  <EQUALS: "eq">
+   |  <NOTEQUAL: "ne">
+   |  <LESSTHAN: "lt">
+   |  <LESSTHANEQUAL: "lte">
+   |  <GREATERTHAN: "gt">
+   |  <GREATERTHANEQUAL: "gte">
+   |  <LIKE: "like">
+   |  <NOT_LIKE: "notlike">
+   |  <IN: "in">
+   |  <NOT_IN: "not in">
+}
+
+TOKEN: /* the keywords and comparators - QUOTEDVALUE accounts for escaped quotes as well */
+{
+        < STRING : (["A"-"Z","a"-"z","0"-"9","_","$",".","{","}"])+ >
+|       < SINGLE_QUOTED_STRING: ["'"] (~["'"])+ ["'"] >
+|       < DOUBLE_QUOTED_STRING: ["\""] (~["\""])+ ["\""] >
+|       < FUNCTION: (["A"-"Z","a"-"z","0"-"9","_"])+ "(" (<VALUE_TERM> (","<VALUE_TERM>)*)? ")" >
+|       < VALUE_TERM: (<STRING> | <SINGLE_QUOTED_STRING> | <DOUBLE_QUOTED_STRING>)+ >
+|       < FIELD_TERM: (<VALUE_TERM> | <FUNCTION>)+ >
+}
+
+
+/** 
+ *  Top level
+ */
+FilterExpression parse() : {
+	FilterExpression rootExpression = new FilterExpression();
+	FilterExpression.Clause tRootClause;
+}
+{
+    tRootClause = expression()   <EOF>       // a query followed by optional sort
+	{
+		rootExpression.setClause(tRootClause);
+		return rootExpression;
+	}
+}
+
+/**
+ * An expression is defined to be a queryTerm followed by zero or more
+ * query terms joined by either an AND or an OR.   If two query terms are joined with 
+ * AND then both conditions must be met.  If two query terms are joined with an OR, then
+ * one of the two conditions must be met.  
+ */
+FilterExpression.Clause expression() :
+{
+	Token tLogicOp = null;
+	FilterExpression.Clause left = null, next = null;
+}
+{           
+	left = queryTerm()    
+   (
+		( tLogicOp = <AND> | tLogicOp = <OR> ) 
+      next = queryTerm() {
+			/* recursively build up a compound expression */
+			FilterExpression.CompoundClause andOr = new FilterExpression.CompoundClause();
+			andOr.left = left;
+			andOr.right = next;
+			andOr.operator = FilterExpression.LogicalOperator.valueOf(tLogicOp.image.toUpperCase());
+			left = andOr;
+		}
+	)*
+	{
+		return left;
+	}
+
+}
+
+/**
+ * Query terms may consist of a parenthetically separated expression or
+ * may be a query criteria of the form queryName = something or queryName <> something.
+ *
+ */
+FilterExpression.Clause queryTerm() :
+{
+	FilterExpression.Clause tClause;
+	Token tField = null, tValue = null, tOp = null;
+}
+{
+        ( tField = <STRING> | tField = <FUNCTION> )
+			{
+				tClause = new FilterExpression.SimpleClause();
+				((FilterExpression.SimpleClause)tClause).identifier = tField.image;
+			}
+			(tOp = <EQUALS> | tOp = <NOTEQUAL> | tOp = <IN> | tOp = <NOT_IN> | tOp = <LESSTHAN> | tOp = <LESSTHANEQUAL> | tOp = <GREATERTHAN> | tOp = <GREATERTHANEQUAL> | tOp = <LIKE> | tOp = <NOT_LIKE>) {
+				((FilterExpression.SimpleClause)tClause).operator = FilterExpression.ComparisonOperator.fromString(tOp.image.toUpperCase());
+			} 
+			( tValue = <DOUBLE_QUOTED_STRING> { tValue.image = tValue.image.replaceAll("^\"|\"$", "");} | 
+			  tValue = <STRING> | 
+			  tValue = <SINGLE_QUOTED_STRING> { tValue.image = tValue.image.replaceAll("^\'|\'$", "");}
+		  ) {
+				((FilterExpression.SimpleClause)tClause).value = tValue.image;
+				return tClause;
+		  }
+
+        |
+        <LPAREN>  tClause = expression() <RPAREN>
+		  {
+			return tClause;
+		  }
+}
+
+
+
