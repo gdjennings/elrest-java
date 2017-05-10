@@ -53,8 +53,9 @@ dependencies {
 	// https://mvnrepository.com/artifact/org.eclipse.persistence/javax.persistence
 	compile group: 'org.eclipse.persistence', name: 'javax.persistence', version: '2.1.1'
 
-
-
-
 	testCompile group: 'junit', name: 'junit', version: '4.10'
+	// https://mvnrepository.com/artifact/org.eclipse.persistence/eclipselink
+	testRuntime group: 'org.eclipse.persistence', name: 'eclipselink', version: '2.6.4'
+	testRuntime group: 'com.h2database', name: 'h2', version: '1.4.195'
+
 }
