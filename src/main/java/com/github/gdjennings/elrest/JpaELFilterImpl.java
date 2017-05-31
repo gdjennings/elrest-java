@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.Tuple;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -37,7 +38,8 @@ public class JpaELFilterImpl {
 	private final CriteriaBuilder build;
 	private final CriteriaQuery critQ;
 	private final Root resultRoot;
-
+	private final Map<Attribute, Join> joins = new HashMap<>();
+	
 	static final Pattern LOWER_PATTERN = Pattern.compile("lower\\((.*)\\)");
 
 	public JpaELFilterImpl(EntityManager em, Class entityClass, Class resultClass) {
@@ -58,15 +60,13 @@ public class JpaELFilterImpl {
 	 */
 	public void buildExpression(String filter) throws ParseException {
 
-		Map<Attribute, Join> joins = new HashMap<>();
-		
 		HashMap<String, Object> expressionContext = new HashMap<>();
 
 		List<Predicate> predicates = new ArrayList<>();
 
 		if (filter != null && filter.trim().length() > 0) {
 
-			predicates.add(toPredicate(filter, expressionContext, joins));
+			predicates.add(toPredicate(filter, expressionContext));
 		}
 
 		switch (predicates.size()) {
@@ -82,35 +82,35 @@ public class JpaELFilterImpl {
 
 	}
 
-	private Predicate toPredicate(String filter, Map<String, Object> context, Map<Attribute, Join> joins) throws ParseException {
+	private Predicate toPredicate(String filter, Map<String, Object> context) throws ParseException {
 
 		FilterExpression expression = new FilterELParser(filter).parse();
 		FilterExpression.Clause rootClause = expression.getClause();
-		return buildPredicate(rootClause, context, joins);
+		return buildPredicate(rootClause, context);
 	}
 
-	private Predicate buildPredicate(FilterExpression.Clause clause, Map<String, Object> context, Map<Attribute, Join> joins) throws ParseException {
+	private Predicate buildPredicate(FilterExpression.Clause clause, Map<String, Object> context) throws ParseException {
 		if (clause instanceof FilterExpression.CompoundClause) {
-			return buildCompoundPredicate((FilterExpression.CompoundClause) clause, context, joins);
+			return buildCompoundPredicate((FilterExpression.CompoundClause) clause, context);
 		} else if (clause instanceof FilterExpression.SimpleClause) {
-			return buildSimplePredicate((FilterExpression.SimpleClause) clause, context, joins);
+			return buildSimplePredicate((FilterExpression.SimpleClause) clause, context);
 		} else {
 			return null;
 		}
 	}
 
-	private Predicate buildCompoundPredicate(FilterExpression.CompoundClause clause, Map<String, Object> context, Map<Attribute, Join> joins) throws ParseException {
+	private Predicate buildCompoundPredicate(FilterExpression.CompoundClause clause, Map<String, Object> context) throws ParseException {
 		Predicate tempPredicate = null;
 		if (clause.operator == FilterExpression.LogicalOperator.AND) {
-			tempPredicate = build.and(buildPredicate(clause.left, context, joins), buildPredicate(clause.right, context, joins));
+			tempPredicate = build.and(buildPredicate(clause.left, context), buildPredicate(clause.right, context));
 		}
 		if (clause.operator == FilterExpression.LogicalOperator.OR) {
-			tempPredicate = build.or(buildPredicate(clause.left, context, joins), buildPredicate(clause.right, context, joins));
+			tempPredicate = build.or(buildPredicate(clause.left, context), buildPredicate(clause.right, context));
 		}
 		return tempPredicate;
 	}
 
-	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Map<String, Object> context, Map<Attribute, Join> joins) throws ParseException {
+	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Map<String, Object> context) throws ParseException {
 		Predicate tempPredicate;
 		Path propertyRoot = resultRoot;
 		Path<Date> timestampProperty = null;
@@ -332,7 +332,6 @@ public class JpaELFilterImpl {
 		}
 
 		critQ.multiselect(multiSelection);
-
 		return this;
 	}
 
@@ -359,5 +358,85 @@ public class JpaELFilterImpl {
 	public List getResultList(int limit, int skip) {
 		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).getResultList();
 	}
+	
+	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
+	
+	public JpaELFilterImpl groupBy(String[] fields, String aggregate, String[] groupBy) {
+		List<Selection> multiSelection = new ArrayList<>();
 
+		for (String f : fields) {
+			multiSelection.add(getPath(f));
+		}
+
+		Matcher m = AGGREGATE_FUNCTION.matcher(aggregate);
+		if (m.matches()) {
+			switch(m.group("fn")) {
+				case "count":
+					multiSelection.add(build.count(getPath(m.group("field"))));
+					break;
+				case "sum":
+					multiSelection.add(build.sum(getPath(m.group("field"))));
+					break;
+				case "min":
+					multiSelection.add(build.min(getPath(m.group("field"))));
+					break;
+				case "max": 
+					multiSelection.add(build.max(getPath(m.group("field"))));
+					break;
+				case "avg":
+					multiSelection.add(build.avg(getPath(m.group("field"))));
+					break;
+			}
+			
+			critQ.multiselect(multiSelection);
+			critQ.groupBy(
+					Arrays.stream(groupBy)
+							.map(f -> getPath(f))
+							.collect(Collectors.toList())
+			);
+		}
+		return this;
+	}
+
+	private Path getPath(String field) {
+		String[] lhs = field.split("\\.");
+		Path propertyRoot = resultRoot;
+		Attribute propertyRootAttribute = null;
+
+		for (String propName : lhs) {
+			propertyRoot = propertyRoot.get(propName);
+			propertyRootAttribute = (Attribute) propertyRoot.getModel();
+			if (Attribute.PersistentAttributeType.MANY_TO_ONE.equals(propertyRootAttribute.getPersistentAttributeType())) {
+				SingularAttribute manyToOne = (SingularAttribute) propertyRootAttribute;
+				Join joined = joins.get(manyToOne);
+				JoinType jt = JoinType.LEFT;
+				if (!manyToOne.isOptional()) {
+					jt = JoinType.INNER;
+				}
+
+				if (joined == null) {
+					joined = resultRoot.join(manyToOne, jt);
+					joins.put(manyToOne, joined);
+				}
+				propertyRoot = joined;
+			} else if (Attribute.PersistentAttributeType.ONE_TO_MANY.equals(propertyRootAttribute.getPersistentAttributeType())) {
+				PluralAttribute oneToMany = (PluralAttribute) propertyRootAttribute;
+				Join joined = joins.get(oneToMany);
+				JoinType jt = JoinType.LEFT;
+
+				if (joined == null) {
+					if (SetAttribute.class.isAssignableFrom(oneToMany.getClass())) {
+						joined = resultRoot.joinSet(propName, jt);
+					} else if (ListAttribute.class.isAssignableFrom(oneToMany.getClass())) {
+						joined = resultRoot.joinList(propName, jt);
+					} else if (CollectionAttribute.class.isAssignableFrom(oneToMany.getClass())) {
+						joined = resultRoot.joinCollection(propName, jt);
+					}
+					joins.put(oneToMany, joined);
+				}
+				propertyRoot = joined;
+			}
+		}
+		return propertyRoot;
+	}
 }

@@ -122,7 +122,7 @@ FilterExpression.Clause expression() :
 
 /**
  * Query terms may consist of a parenthetically separated expression or
- * may be a query criteria of the form queryName = something or queryName <> something.
+ * may be a query criteria of the form queryName = something or queryName.
  *
  */
 FilterExpression.Clause queryTerm() :

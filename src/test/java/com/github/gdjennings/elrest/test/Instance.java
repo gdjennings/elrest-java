@@ -13,13 +13,17 @@ import javax.persistence.ManyToOne;
 
 /**
  *
- * @author markcocquio
+ * @author grantjennings
  */
 @Entity
 public class Instance {
 	
 	@Id @GeneratedValue(generator = "system-uuid")
 	private String name;
+	
+	private int number;
+	
+	private String field;
 	
 	@ManyToOne
 	private Instance circular;
@@ -43,6 +47,22 @@ public class Instance {
 
 	public void setCircular(Instance circular) {
 		this.circular = circular;
+	}
+
+	public int getNumber() {
+		return number;
+	}
+
+	public void setNumber(int number) {
+		this.number = number;
+	}
+
+	public String getField() {
+		return field;
+	}
+
+	public void setField(String field) {
+		this.field = field;
 	}
 
 

@@ -1,12 +1,22 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+	}
+}
 plugins {
 	id 'ca.coglinc.javacc' version '2.4.0'
 }
 
 apply plugin: 'maven-publish'
 apply plugin: 'java'
+apply plugin: 'io.codearte.nexus-staging'
 
 group = "com.github.gdjennings"
-version = "0.0.1"
+version = "0.0.2"
+description = "ODATA-like filter expressions to JPA Criteria Queries"
 
 
 sourceCompatibility = '1.8'
@@ -22,8 +32,15 @@ sourceSets {
 	}
 }
 
-task sourceJar(type: Jar) {
-	from sourceSets.main.allJava
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	classifier = 'javadoc'
+	javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+	classifier = 'sources'
+	from sourceSets.main.allSource
 }
 
 repositories {
@@ -36,8 +53,8 @@ publishing {
 		mavenJava(MavenPublication) {
 			from components.java
 
-			artifact sourceJar {
-				classifier "sources"
+			artifacts {
+				archives javadocJar, sourcesJar
 			}
 		}
 	}
@@ -58,4 +75,68 @@ dependencies {
 	testRuntime group: 'org.eclipse.persistence', name: 'eclipselink', version: '2.6.4'
 	testRuntime group: 'com.h2database', name: 'h2', version: '1.4.195'
 
+}
+
+if (project.hasProperty('release')) {
+
+	allprojects {
+		apply plugin: 'signing'
+		apply plugin: 'maven'
+
+		artifacts {
+			archives javadocJar, sourcesJar
+		}
+		// Signature of artifacts
+		signing {
+			sign configurations.archives
+		}
+
+		// OSSRH publication
+		uploadArchives {
+			repositories {
+				mavenDeployer {
+					// POM signature
+					beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+					// Target repository
+					repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+						authentication(userName: ossrhUser, password: ossrhPassword)
+					}
+					pom.project {
+						name project.name
+						description project.description
+						packaging 'jar'
+						url 'https://github.com/gdjennings/elrest-java'
+
+						scm {
+							connection 'scm:git:https://github.com/gdjennings/elrest-java.git'
+							developerConnection 'scm:git:git@github.com:gdjennings/elrest-java.git'
+							url 'https://github.com/gdjennings/elrest-java.git'
+						}
+
+						licenses {
+							license {
+								name 'The MIT License (MIT)'
+								url 'http://opensource.org/licenses/MIT'
+								distribution 'repo'
+							}
+						}
+
+						developers {
+							developer {
+								id = 'gdjennings'
+								name = 'Grant Jennings'
+								email = 'grant@sage-mobile.com'
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+}
+
+nexusStaging {  
+	username = ossrhUser
+	password = ossrhPassword
 }
