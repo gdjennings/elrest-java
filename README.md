@@ -18,19 +18,19 @@ expression := [(]property *operator* value[)][ and | or expression]
 
 ## Property Expressions
 Expressions can operate across joins (M-1, 1-M and M-M). 
-**E.g. **
+**For example:**
 ```
      address.postCode eq "90210"  // Users in beverly hills
      roles.name eq "Admin"        // Users who hold the admin role
      contacts.type eq "facebook"  // Users that have given facebook profile
 ```
 
-##Modifiers:
-select: Limits the result to provided field names. Result class is *javax.persistence.Tuple*
-groupBy: Execute a group by query. Only returns enumerated fields. Result class is *javax.persistence.Tuple*
+## Modifiers:
+* **select**: Limits the result to provided field names. Result class is *javax.persistence.Tuple*
+* **groupBy**: Execute a group by query. Only returns enumerated fields. Result class is *javax.persistence.Tuple*
 
 
-##Terminal functions
+## Terminal functions
 * **getResultList(limit, skip)**: Returns a list of entities
 * **getSingleResult()**: Returns a single entity. Assumes the expression is returning a single entity. Throws exception otherwise
 * **count()**: Count of the results that would be returned by getResultList
