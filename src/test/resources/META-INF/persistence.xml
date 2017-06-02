@@ -6,6 +6,7 @@
 		<class>com.github.gdjennings.elrest.test.ManyToMany2</class>
 		<class>com.github.gdjennings.elrest.test.Instance</class>
 		<class>com.github.gdjennings.elrest.test.InstanceWithNumericPrimaryKey</class>
+		<class>com.github.gdjennings.elrest.test.User</class>
 		<exclude-unlisted-classes>true</exclude-unlisted-classes>
 		<properties>
 			<property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>

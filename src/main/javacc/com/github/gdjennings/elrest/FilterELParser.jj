@@ -10,58 +10,51 @@ import java.io.Reader;
 
 public class FilterELParser {
 
-    public FilterELParser(String s) 
-    {
-        this((Reader)(new StringReader(s))); 
-        
-    }
-    
-   
-    public static void main(String args[])
-    {
-        try
-        {
-                String query = args[0];
-                FilterELParser parser = new FilterELParser(query);
-                parser.parse();
-        }
-        catch(Exception e)
-        {
-                e.printStackTrace();
-        }
-    }
+	public FilterELParser(String s) {
+		this((Reader)(new StringReader(s))); 
+	}
+
+	public static void main(String args[]) {
+		try {
+			String query = args[0];
+			FilterELParser parser = new FilterELParser(query);
+			parser.parse();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
 PARSER_END(FilterELParser) 
 
 /**  And now, the actual parsing specifications...... */
 
 /** Skip these characters, they are considered "white space" **/
-SKIP :                              
+SKIP :
 {
-    " "
-    | "\t"
-    | "\r"
-    | "\n"
+	" "
+	| "\t"
+	| "\r"
+	| "\n"
 
 }
 
 
 TOKEN: /*RESERVED TOKENS FOR UQL */
 {
-      <AND: "and">
-   |  <OR:  "or">
-   |  <LPAREN: "(">
-   |  <RPAREN: ")">
-   |  <EQUALS: "eq">
-   |  <NOTEQUAL: "ne">
-   |  <LESSTHAN: "lt">
-   |  <LESSTHANEQUAL: "lte">
-   |  <GREATERTHAN: "gt">
-   |  <GREATERTHANEQUAL: "gte">
-   |  <LIKE: "like">
-   |  <NOT_LIKE: "notlike">
-   |  <IN: "in">
-   |  <NOT_IN: "not in">
+	   <AND: "and">
+	|  <OR:  "or">
+	|  <LPAREN: "(">
+	|  <RPAREN: ")">
+	|  <EQUALS: "eq">
+	|  <NOTEQUAL: "ne">
+	|  <LESSTHAN: "lt">
+	|  <LESSTHANEQUAL: "lte">
+	|  <GREATERTHAN: "gt">
+	|  <GREATERTHANEQUAL: "gte">
+	|  <LIKE: "like">
+	|  <NOT_LIKE: "notlike">
+	|  <IN: "in">
+	|  <NOT_IN: "not in">
 }
 
 TOKEN: /* the keywords and comparators - QUOTEDVALUE accounts for escaped quotes as well */
@@ -83,7 +76,7 @@ FilterExpression parse() : {
 	FilterExpression.Clause tRootClause;
 }
 {
-    tRootClause = expression()   <EOF>       // a query followed by optional sort
+	tRootClause = expression()   <EOF>       // a query followed by optional sort
 	{
 		rootExpression.setClause(tRootClause);
 		return rootExpression;
@@ -101,11 +94,11 @@ FilterExpression.Clause expression() :
 	Token tLogicOp = null;
 	FilterExpression.Clause left = null, next = null;
 }
-{           
-	left = queryTerm()    
-   (
+{
+	left = queryTerm()
+	(
 		( tLogicOp = <AND> | tLogicOp = <OR> ) 
-      next = queryTerm() {
+		next = queryTerm() {
 			/* recursively build up a compound expression */
 			FilterExpression.CompoundClause andOr = new FilterExpression.CompoundClause();
 			andOr.left = left;
@@ -131,7 +124,7 @@ FilterExpression.Clause queryTerm() :
 	Token tField = null, tValue = null, tOp = null;
 }
 {
-        ( tField = <STRING> | tField = <FUNCTION> )
+		( tField = <STRING> | tField = <FUNCTION> )
 			{
 				tClause = new FilterExpression.SimpleClause();
 				((FilterExpression.SimpleClause)tClause).identifier = tField.image;
@@ -142,16 +135,16 @@ FilterExpression.Clause queryTerm() :
 			( tValue = <DOUBLE_QUOTED_STRING> { tValue.image = tValue.image.replaceAll("^\"|\"$", "");} | 
 			  tValue = <STRING> | 
 			  tValue = <SINGLE_QUOTED_STRING> { tValue.image = tValue.image.replaceAll("^\'|\'$", "");}
-		  ) {
+		) {
 				((FilterExpression.SimpleClause)tClause).value = tValue.image;
 				return tClause;
-		  }
+		}
 
-        |
-        <LPAREN>  tClause = expression() <RPAREN>
-		  {
+		|
+		<LPAREN>  tClause = expression() <RPAREN>
+		{
 			return tClause;
-		  }
+		}
 }
 
 

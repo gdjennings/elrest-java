@@ -40,7 +40,7 @@ public class JpaELFilterImpl {
 	private final Root resultRoot;
 	private final Map<Attribute, Join> joins = new HashMap<>();
 	
-	static final Pattern LOWER_PATTERN = Pattern.compile("lower\\((.*)\\)");
+	static final Pattern CASE_PATTERN = Pattern.compile("(lower|upper)\\((.*)\\)");
 
 	public JpaELFilterImpl(EntityManager em, Class entityClass, Class resultClass) {
 		this.em = em;
@@ -114,17 +114,20 @@ public class JpaELFilterImpl {
 		Predicate tempPredicate;
 		Path propertyRoot = resultRoot;
 		Path<Date> timestampProperty = null;
+		Path<Calendar> calendarProperty = null;
 		Attribute propertyRootAttribute = null;
 		String leafPropName = null;
 
-		boolean toLowerCase = false;
-		Matcher lowerMatcher = LOWER_PATTERN.matcher(clause.identifier);
-		if (lowerMatcher.matches()) {
-			clause.identifier = lowerMatcher.group(1);
-			toLowerCase = true;
+		String changeCase = null;
+		Matcher caseMatcher = CASE_PATTERN.matcher(clause.identifier);
+		if (caseMatcher.matches()) {
+			changeCase = caseMatcher.group(1);
+			clause.identifier = caseMatcher.group(2);
 		}
 		
+		
 		String[] lhs = clause.identifier.split("\\.");
+		Join joinRoot = null;
 		for (String propName : lhs) {
 			propertyRoot = propertyRoot.get(propName);
 			propertyRootAttribute = (Attribute) propertyRoot.getModel();
@@ -137,10 +140,11 @@ public class JpaELFilterImpl {
 				}
 
 				if (joined == null) {
-					joined = resultRoot.join(manyToOne, jt);
+					joined = (joinRoot != null ? joinRoot : resultRoot).join(manyToOne, jt);
 					joins.put(manyToOne, joined);
 				}
 				propertyRoot = joined;
+				joinRoot = joined;
 			} else if (Attribute.PersistentAttributeType.ONE_TO_MANY.equals(propertyRootAttribute.getPersistentAttributeType())) {
 				PluralAttribute oneToMany = (PluralAttribute) propertyRootAttribute;
 				Join joined = joins.get(oneToMany);
@@ -148,26 +152,37 @@ public class JpaELFilterImpl {
 
 				if (joined == null) {
 					if (SetAttribute.class.isAssignableFrom(oneToMany.getClass())) {
-						joined = resultRoot.joinSet(propName, jt);
+						joined = (joinRoot != null ? joinRoot : resultRoot).joinSet(propName, jt);
 					} else if (ListAttribute.class.isAssignableFrom(oneToMany.getClass())) {
-						joined = resultRoot.joinList(propName, jt);
+						joined = (joinRoot != null ? joinRoot : resultRoot).joinList(propName, jt);
 					} else if (CollectionAttribute.class.isAssignableFrom(oneToMany.getClass())) {
-						joined = resultRoot.joinCollection(propName, jt);
+						joined = (joinRoot != null ? joinRoot : resultRoot).joinCollection(propName, jt);
 					}
 					joins.put(oneToMany, joined);
 				}
 				propertyRoot = joined;
+				joinRoot = joined;
 			}
 			leafPropName = propName;
 		}
 
 
 		Object discriminatorEntity = "null".equalsIgnoreCase(clause.value) ? null : clause.value;
-		toLowerCase = String.class.isAssignableFrom(propertyRoot.getJavaType()) && toLowerCase;
+		if (changeCase != null && !String.class.isAssignableFrom(propertyRoot.getJavaType())) {
+			throw new ParseException(changeCase+" function on non-string type");
+		}
 		boolean emptySetMatch = discriminatorEntity == null;
 
 		if (propertyRoot.getJavaType().isEnum() && discriminatorEntity != null) {
 			discriminatorEntity = Enum.valueOf(propertyRoot.getJavaType(), String.valueOf(discriminatorEntity));
+		} else if (Date.class.isAssignableFrom(propertyRoot.getJavaType())) {
+			timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
+			discriminatorEntity = new Date(Long.valueOf(String.valueOf(discriminatorEntity)));
+		} else if (Calendar.class.isAssignableFrom(propertyRoot.getJavaType())) {
+			calendarProperty = propertyRoot.getParentPath().<Calendar>get(leafPropName);
+			Calendar tmp = Calendar.getInstance();
+			tmp.setTimeInMillis(Long.valueOf(String.valueOf(discriminatorEntity)));
+			discriminatorEntity = tmp;
 		} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType()) 
 			 || EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
 			try {
@@ -175,9 +190,6 @@ public class JpaELFilterImpl {
 			} catch (NumberFormatException e) {
 				throw new ParseException("Invalid value for numeric property: "+ clause.identifier + " caused by: " + e.getMessage());
 			}
-		} else if (Date.class.isAssignableFrom(propertyRoot.getJavaType())) {
-			timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
-			discriminatorEntity = new Date(Long.valueOf(String.valueOf(discriminatorEntity)));
 		}
 
 		switch (clause.operator) {
@@ -187,8 +199,9 @@ public class JpaELFilterImpl {
 				} else if (emptySetMatch) {
 					tempPredicate = build.isNull(propertyRoot);
 				} else {
-					if (toLowerCase) {
-						tempPredicate = build.equal(build.lower(propertyRoot), discriminatorEntity);
+					if (changeCase != null) {
+						Expression ignoredCase = "upper".equals(changeCase) ? build.upper(propertyRoot) : build.lower(propertyRoot);
+						tempPredicate = build.equal(ignoredCase, discriminatorEntity);
 					} else {
 						tempPredicate = build.equal(propertyRoot, discriminatorEntity);
 					}
@@ -201,8 +214,9 @@ public class JpaELFilterImpl {
 				} else if (emptySetMatch) {
 					tempPredicate = build.isNotNull(propertyRoot);
 				} else {
-					if (toLowerCase) {
-						tempPredicate = build.notEqual(build.lower(propertyRoot), discriminatorEntity);
+					if (changeCase != null) {
+						Expression ignoredCase = "upper".equals(changeCase) ? build.upper(propertyRoot) : build.lower(propertyRoot);
+						tempPredicate = build.notEqual(ignoredCase, discriminatorEntity);
 					} else {
 						tempPredicate = build.notEqual(propertyRoot, discriminatorEntity);
 					}
@@ -238,8 +252,9 @@ public class JpaELFilterImpl {
 				if (emptySetMatch) {
 					tempPredicate = build.equal(build.size(propertyRoot), 0);
 				} else {
-					if (toLowerCase) {
-						tempPredicate = build.like(build.lower(propertyRoot), (String) discriminatorEntity);
+					if (changeCase != null) {
+						Expression ignoredCase = "upper".equals(changeCase) ? build.upper(propertyRoot) : build.lower(propertyRoot);
+						tempPredicate = build.like(ignoredCase, (String)discriminatorEntity);
 					} else {
 						tempPredicate = build.like(propertyRoot, (String) discriminatorEntity);
 					}
@@ -250,7 +265,8 @@ public class JpaELFilterImpl {
 				if (emptySetMatch) {
 					tempPredicate = build.equal(build.size(propertyRoot), 0);
 				} else {
-					if (toLowerCase) {
+					if (changeCase != null) {
+						Expression ignoredCase = "upper".equals(changeCase) ? build.upper(propertyRoot) : build.lower(propertyRoot);
 						tempPredicate = build.notLike(build.lower(propertyRoot), (String) discriminatorEntity);
 					} else {
 						tempPredicate = build.notLike(propertyRoot, (String) discriminatorEntity);
@@ -261,6 +277,8 @@ public class JpaELFilterImpl {
 			case GT: {
 				if (timestampProperty != null) {
 					tempPredicate = build.greaterThan(timestampProperty, (Date) discriminatorEntity);
+				} else if (calendarProperty != null) {
+					tempPredicate = build.greaterThan(calendarProperty, (Calendar) discriminatorEntity);
 				} else {
 					tempPredicate = build.gt(propertyRoot, (Number) discriminatorEntity);
 				}
@@ -269,6 +287,8 @@ public class JpaELFilterImpl {
 			case LT: {
 				if (timestampProperty != null) {
 					tempPredicate = build.lessThan(timestampProperty, (Date) discriminatorEntity);
+				} else if (calendarProperty != null) {
+					tempPredicate = build.lessThan(calendarProperty, (Calendar) discriminatorEntity);
 				} else {
 					tempPredicate = build.lt(propertyRoot, (Number) discriminatorEntity);
 				}
@@ -277,6 +297,8 @@ public class JpaELFilterImpl {
 			case GTE: {
 				if (timestampProperty != null) {
 					tempPredicate = build.greaterThanOrEqualTo(timestampProperty, (Date) discriminatorEntity);
+				} else if (calendarProperty != null) {
+					tempPredicate = build.greaterThanOrEqualTo(calendarProperty, (Calendar) discriminatorEntity);
 				} else {
 					tempPredicate = build.greaterThanOrEqualTo(propertyRoot, (BigDecimal) discriminatorEntity);
 				}
@@ -285,6 +307,8 @@ public class JpaELFilterImpl {
 			case LTE: {
 				if (timestampProperty != null) {
 					tempPredicate = build.lessThanOrEqualTo(timestampProperty, (Date) discriminatorEntity);
+				} else if (calendarProperty != null) {
+					tempPredicate = build.lessThanOrEqualTo(calendarProperty, (Calendar) discriminatorEntity);
 				} else {
 					tempPredicate = build.lessThanOrEqualTo(propertyRoot, (BigDecimal) discriminatorEntity);
 				}
@@ -338,9 +362,9 @@ public class JpaELFilterImpl {
 	public JpaELFilterImpl orderBy(String orderByFields) {
 		if (orderByFields != null) {
 			if (orderByFields.startsWith("-")) {
-				critQ.orderBy(build.desc(resultRoot.get(orderByFields.substring(1))));
+				critQ.orderBy(build.desc(getPath(orderByFields.substring(1))));
 			} else {
-				critQ.orderBy(build.asc(resultRoot.get(orderByFields)));	
+				critQ.orderBy(build.asc(getPath(orderByFields)));
 			}
 		}
 		return this;
