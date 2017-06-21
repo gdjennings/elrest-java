@@ -23,6 +23,7 @@ import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
 import javax.persistence.metamodel.Attribute;
 import javax.persistence.metamodel.CollectionAttribute;
+import javax.persistence.metamodel.EntityType;
 import javax.persistence.metamodel.ListAttribute;
 import javax.persistence.metamodel.PluralAttribute;
 import javax.persistence.metamodel.SetAttribute;
@@ -113,6 +114,7 @@ public class JpaELFilterImpl {
 	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Map<String, Object> context) throws ParseException {
 		Predicate tempPredicate;
 		Path propertyRoot = resultRoot;
+		EntityType entityType = resultRoot.getModel();
 		Path<Date> timestampProperty = null;
 		Path<Calendar> calendarProperty = null;
 		Attribute propertyRootAttribute = null;
@@ -131,8 +133,12 @@ public class JpaELFilterImpl {
 		for (String propName : lhs) {
 			propertyRoot = propertyRoot.get(propName);
 			propertyRootAttribute = (Attribute) propertyRoot.getModel();
+			if (propertyRootAttribute == null) {
+				propertyRootAttribute = entityType.getAttribute(propName);
+			}
 			if (Attribute.PersistentAttributeType.MANY_TO_ONE.equals(propertyRootAttribute.getPersistentAttributeType())) {
 				SingularAttribute manyToOne = (SingularAttribute) propertyRootAttribute;
+				entityType = (EntityType) manyToOne.getType();
 				Join joined = joins.get(manyToOne);
 				JoinType jt = JoinType.LEFT;
 				if (!manyToOne.isOptional()) {
@@ -147,6 +153,7 @@ public class JpaELFilterImpl {
 				joinRoot = joined;
 			} else if (Attribute.PersistentAttributeType.ONE_TO_MANY.equals(propertyRootAttribute.getPersistentAttributeType())) {
 				PluralAttribute oneToMany = (PluralAttribute) propertyRootAttribute;
+				entityType = (EntityType) oneToMany.getElementType();
 				Join joined = joins.get(oneToMany);
 				JoinType jt = JoinType.LEFT;
 
