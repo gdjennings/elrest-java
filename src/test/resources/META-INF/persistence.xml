@@ -5,6 +5,7 @@
 		<class>com.github.gdjennings.elrest.test.ManyToMany1</class>
 		<class>com.github.gdjennings.elrest.test.ManyToMany2</class>
 		<class>com.github.gdjennings.elrest.test.Instance</class>
+		<class>com.github.gdjennings.elrest.test.OneToManyInstance</class>
 		<class>com.github.gdjennings.elrest.test.InstanceWithNumericPrimaryKey</class>
 		<class>com.github.gdjennings.elrest.test.User</class>
 		<exclude-unlisted-classes>true</exclude-unlisted-classes>
