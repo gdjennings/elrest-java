@@ -15,7 +15,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'java'
 
 group = "com.github.gdjennings"
-version = "0.1.1"
+version = "0.2.0"
 description = "ODATA-like filter expressions to JPA Criteria Queries"
 
 

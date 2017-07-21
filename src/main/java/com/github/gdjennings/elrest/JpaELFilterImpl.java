@@ -10,8 +10,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.persistence.EntityManager;
-import javax.persistence.Tuple;
+import javax.persistence.*;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
@@ -389,7 +388,11 @@ public class JpaELFilterImpl {
 	public List getResultList(int limit, int skip) {
 		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).getResultList();
 	}
-	
+
+	public List getResultList(int limit, int skip, EntityGraph graph) {
+		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
+	}
+
 	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
 	
 	public JpaELFilterImpl groupBy(String[] fields, String aggregate, String[] groupBy) {
