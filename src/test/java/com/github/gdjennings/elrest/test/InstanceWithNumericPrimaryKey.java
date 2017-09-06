@@ -9,15 +9,14 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 /**
- *
  * @author grantjennings
  */
 @Entity
 public class InstanceWithNumericPrimaryKey {
-	
+
 	@Id
 	private Long id;
-	
+
 	private String data;
 
 	public Long getId() {
@@ -35,6 +34,6 @@ public class InstanceWithNumericPrimaryKey {
 	public void setData(String data) {
 		this.data = data;
 	}
-	
-	
+
+
 }

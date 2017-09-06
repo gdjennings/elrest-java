@@ -5,22 +5,22 @@
 */
 package com.github.gdjennings.elrest.test;
 
-import java.util.HashSet;
-import java.util.Set;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- *
  * @author grantjennings
  */
 @Entity
 public class ManyToMany2 {
-	@Id @GeneratedValue(generator = "system-uuid")
+	@Id
+	@GeneratedValue(generator = "system-uuid")
 	private String id;
-	
+
 	@ManyToMany
 	private Set<ManyToMany1> to1 = new HashSet<>();
 

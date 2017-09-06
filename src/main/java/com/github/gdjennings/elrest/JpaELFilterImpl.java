@@ -5,12 +5,9 @@
 */
 package com.github.gdjennings.elrest;
 
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.persistence.*;
+import javax.persistence.EntityGraph;
+import javax.persistence.EntityManager;
+import javax.persistence.Tuple;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
@@ -27,9 +24,20 @@ import javax.persistence.metamodel.ListAttribute;
 import javax.persistence.metamodel.PluralAttribute;
 import javax.persistence.metamodel.SetAttribute;
 import javax.persistence.metamodel.SingularAttribute;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
- *
  * @author grantjennings
  */
 public class JpaELFilterImpl {
@@ -39,7 +47,7 @@ public class JpaELFilterImpl {
 	private final CriteriaQuery critQ;
 	private final Root resultRoot;
 	private final Map<Attribute, Join> joins = new HashMap<>();
-	
+
 	static final Pattern CASE_PATTERN = Pattern.compile("(lower|upper)\\((.*)\\)");
 
 	public JpaELFilterImpl(EntityManager em, Class entityClass, Class resultClass) {
@@ -52,11 +60,11 @@ public class JpaELFilterImpl {
 		}
 		resultRoot = critQ.from(entityClass);
 	}
-	
-		/**
+
+	/**
+	 * @param filter
 	 * @throws com.github.gdjennings.elrest.ParseException
 	 * @throws IllegalArgumentException
-	 * @param filter
 	 */
 	public void buildExpression(String filter) throws ParseException {
 
@@ -125,8 +133,8 @@ public class JpaELFilterImpl {
 			changeCase = caseMatcher.group(1);
 			clause.identifier = caseMatcher.group(2);
 		}
-		
-		
+
+
 		String[] lhs = clause.identifier.split("\\.");
 		Join joinRoot = null;
 		for (String propName : lhs) {
@@ -175,7 +183,7 @@ public class JpaELFilterImpl {
 
 		Object discriminatorEntity = "null".equalsIgnoreCase(clause.value) ? null : clause.value;
 		if (changeCase != null && !String.class.isAssignableFrom(propertyRoot.getJavaType())) {
-			throw new ParseException(changeCase+" function on non-string type");
+			throw new ParseException(changeCase + " function on non-string type");
 		}
 		boolean emptySetMatch = discriminatorEntity == null;
 
@@ -189,12 +197,12 @@ public class JpaELFilterImpl {
 			Calendar tmp = Calendar.getInstance();
 			tmp.setTimeInMillis(Long.valueOf(String.valueOf(discriminatorEntity)));
 			discriminatorEntity = tmp;
-		} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType()) 
-			 || EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
+		} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType())
+				|| EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
 			try {
 				discriminatorEntity = new BigDecimal(String.valueOf(discriminatorEntity));
 			} catch (NumberFormatException e) {
-				throw new ParseException("Invalid value for numeric property: "+ clause.identifier + " caused by: " + e.getMessage());
+				throw new ParseException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
 			}
 		}
 
@@ -260,7 +268,7 @@ public class JpaELFilterImpl {
 				} else {
 					if (changeCase != null) {
 						Expression ignoredCase = "upper".equals(changeCase) ? build.upper(propertyRoot) : build.lower(propertyRoot);
-						tempPredicate = build.like(ignoredCase, (String)discriminatorEntity);
+						tempPredicate = build.like(ignoredCase, (String) discriminatorEntity);
 					} else {
 						tempPredicate = build.like(propertyRoot, (String) discriminatorEntity);
 					}
@@ -329,10 +337,10 @@ public class JpaELFilterImpl {
 
 	/**
 	 * @param distinctFields
-	 * @return 
+	 * @return
 	 * @throws IllegalArgumentException if the field is not part of the entity
-	*/
-	public JpaELFilterImpl distinct(String ...distinctFields) {
+	 */
+	public JpaELFilterImpl distinct(String... distinctFields) {
 		if (distinctFields != null) {
 			List<Selection> multiSelection = new ArrayList<>();
 			for (String f : distinctFields) {
@@ -350,9 +358,9 @@ public class JpaELFilterImpl {
 	}
 
 	/**
-	 * @throws IllegalArgumentException if the field is not part of the entity
 	 * @param fields
-	 * @return 
+	 * @return
+	 * @throws IllegalArgumentException if the field is not part of the entity
 	 */
 	public JpaELFilterImpl selectFields(String[] fields) {
 		List<Selection> multiSelection = new ArrayList<>();
@@ -375,7 +383,7 @@ public class JpaELFilterImpl {
 		}
 		return this;
 	}
-	
+
 
 	public Long count() {
 		critQ.select(build.count(resultRoot));
@@ -385,6 +393,7 @@ public class JpaELFilterImpl {
 	public Object getSingleResult() {
 		return em.createQuery(critQ.distinct(true)).getSingleResult();
 	}
+
 	public List getResultList(int limit, int skip) {
 		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).getResultList();
 	}
@@ -394,7 +403,7 @@ public class JpaELFilterImpl {
 	}
 
 	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
-	
+
 	public JpaELFilterImpl groupBy(String[] fields, String aggregate, String[] groupBy) {
 		List<Selection> multiSelection = new ArrayList<>();
 
@@ -404,7 +413,7 @@ public class JpaELFilterImpl {
 
 		Matcher m = AGGREGATE_FUNCTION.matcher(aggregate);
 		if (m.matches()) {
-			switch(m.group("fn")) {
+			switch (m.group("fn")) {
 				case "count":
 					multiSelection.add(build.count(getPath(m.group("field"))));
 					break;
@@ -414,14 +423,14 @@ public class JpaELFilterImpl {
 				case "min":
 					multiSelection.add(build.min(getPath(m.group("field"))));
 					break;
-				case "max": 
+				case "max":
 					multiSelection.add(build.max(getPath(m.group("field"))));
 					break;
 				case "avg":
 					multiSelection.add(build.avg(getPath(m.group("field"))));
 					break;
 			}
-			
+
 			critQ.multiselect(multiSelection);
 			critQ.groupBy(
 					Arrays.stream(groupBy)

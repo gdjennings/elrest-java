@@ -6,7 +6,6 @@
 package com.github.gdjennings.elrest;
 
 /**
- *
  * @author grantjennings
  */
 public class FilterExpression {
@@ -19,36 +18,35 @@ public class FilterExpression {
 	public void setClause(Clause clause) {
 		this.clause = clause;
 	}
-	
-	
-	
+
+
 	public enum LogicalOperator {
 		AND, OR
 	}
-	
+
 	public enum ComparisonOperator {
-		EQ("eq"), 
-		NE("ne"), 
-		LT("lt"), 
-		LTE("lte"), 
-		GTE("gte"), 
-		GT("gt"), 
-		IN("in"), 
-		NOT_IN("not in"), 
-		LIKE("like"), 
+		EQ("eq"),
+		NE("ne"),
+		LT("lt"),
+		LTE("lte"),
+		GTE("gte"),
+		GT("gt"),
+		IN("in"),
+		NOT_IN("not in"),
+		LIKE("like"),
 		NOT_LIKE("notlike");
 
 		private String op;
-		
+
 		ComparisonOperator(final String op) {
 			this.op = op;
 		}
-		
+
 		@Override
 		public String toString() {
 			return op;
 		}
-		
+
 		public static ComparisonOperator fromString(String text) {
 			if (text != null) {
 				for (ComparisonOperator b : ComparisonOperator.values()) {
@@ -60,31 +58,31 @@ public class FilterExpression {
 			return null;
 		}
 	}
-	
+
 	public interface Clause {
-		
+
 	}
-	
+
 	public static class SimpleClause implements Clause {
 		public String identifier;
 		public ComparisonOperator operator;
 		public String value;
-		
+
 		@Override
 		public String toString() {
 			return identifier + " " + operator + " " + value;
 		}
 	}
-	
-	
+
+
 	public static class CompoundClause implements Clause {
 		public Clause left;
 		public LogicalOperator operator;
 		public Clause right;
-		
+
 		@Override
 		public String toString() {
-			return "("+left + ") " + operator.toString().toLowerCase() + " (" + right + ")";
+			return "(" + left + ") " + operator.toString().toLowerCase() + " (" + right + ")";
 		}
 	}
 

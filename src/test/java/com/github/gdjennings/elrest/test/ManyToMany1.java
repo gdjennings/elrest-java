@@ -5,23 +5,23 @@
 */
 package com.github.gdjennings.elrest.test;
 
-import java.util.HashSet;
-import java.util.Set;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- *
  * @author grantjennings
  */
 @Entity
 public class ManyToMany1 {
-	
-	@Id @GeneratedValue(generator = "system-uuid")
+
+	@Id
+	@GeneratedValue(generator = "system-uuid")
 	private String id;
-	
+
 	@ManyToMany(mappedBy = "to1")
 	private Set<ManyToMany2> to2 = new HashSet<>();
 
@@ -40,5 +40,5 @@ public class ManyToMany1 {
 	public void setTo2(Set<ManyToMany2> to2) {
 		this.to2 = to2;
 	}
-	
+
 }

@@ -12,22 +12,22 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
 /**
- *
  * @author grantjennings
  */
 @Entity
 public class Instance {
-	
-	@Id @GeneratedValue(generator = "system-uuid")
+
+	@Id
+	@GeneratedValue(generator = "system-uuid")
 	private String name;
-	
+
 	private int number;
-	
+
 	private String field;
-	
+
 	@ManyToOne
 	private Instance circular;
-	
+
 	public String getName() {
 		return name;
 	}

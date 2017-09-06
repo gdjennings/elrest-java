@@ -6,14 +6,14 @@
 package com.github.gdjennings.elrest;
 
 import com.github.gdjennings.elrest.test.User;
-import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.Tuple;
+import java.util.List;
 
 /**
- *
  * @author grantjennings
  */
 public class Example {
@@ -24,7 +24,7 @@ public class Example {
 		EntityManagerFactory emf = Persistence.createEntityManagerFactory("default");
 		em = emf.createEntityManager();
 	}
-	
+
 	public <T> List<T> filter(Class<T> entityClass, String filter, int limit, int skip) throws ParseException {
 		JpaELFilterImpl fx = new JpaELFilterImpl(em, entityClass, entityClass);
 		fx.buildExpression(filter);
@@ -43,10 +43,10 @@ public class Example {
 	public static void main(String[] args) throws ParseException {
 		// All users with username starting with a
 		Example eg = new Example();
-		eg.filter(User.class, "username like \"a%\"", 0,0);
+		eg.filter(User.class, "username like \"a%\"", 0, 0);
 
 		// users created in the last 24 hours
-		eg.filter(User.class, "createdDate gt "+(System.currentTimeMillis() - 24*60*60*1000), 0, 0);
+		eg.filter(User.class, "createdDate gt " + (System.currentTimeMillis() - 24 * 60 * 60 * 1000), 0, 0);
 
 		// count the number of users in each postcode
 		eg.groupBy(User.class, new String[]{"postCode"}, "count(id)", new String[]{"postCode"});

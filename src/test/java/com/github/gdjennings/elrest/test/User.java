@@ -5,19 +5,18 @@
  */
 package com.github.gdjennings.elrest.test;
 
-import java.util.Calendar;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import java.util.Calendar;
 
 /**
- *
  * @author grantjennings
  */
 @Entity
 public class User {
-	
+
 	@Id
 	String username;
 	String firstName;
@@ -65,5 +64,5 @@ public class User {
 	public void setPostCode(String postCode) {
 		this.postCode = postCode;
 	}
-	
+
 }
