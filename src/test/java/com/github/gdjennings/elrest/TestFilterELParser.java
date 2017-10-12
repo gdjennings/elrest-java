@@ -17,6 +17,44 @@ public class TestFilterELParser {
 	}
 
 	@Test
+	public void testNot() throws Exception {
+		FilterELParser p = new FilterELParser("a !eq b");
+		FilterExpression fe = p.parse();
+		assertNotNull(fe);
+		assertEquals("a", ((FilterExpression.SimpleClause) fe.getClause()).identifier);
+		assertEquals("b",((FilterExpression.SimpleClause) fe.getClause()).value);
+		assertEquals(FilterExpression.ComparisonOperator.NOT_EQ, ((FilterExpression.SimpleClause) fe.getClause()).operator);
+
+		p = new FilterELParser("a not like b");
+		fe = p.parse();
+		assertNotNull(fe);
+		assertEquals("a", ((FilterExpression.SimpleClause) fe.getClause()).identifier);
+		assertEquals("b",((FilterExpression.SimpleClause) fe.getClause()).value);
+		assertEquals(FilterExpression.ComparisonOperator.NOT_LIKE, ((FilterExpression.SimpleClause) fe.getClause()).operator);
+
+		p = new FilterELParser("a !like b");
+		fe = p.parse();
+		assertNotNull(fe);
+		assertEquals("a", ((FilterExpression.SimpleClause) fe.getClause()).identifier);
+		assertEquals("b",((FilterExpression.SimpleClause) fe.getClause()).value);
+		assertEquals(FilterExpression.ComparisonOperator.NOT_LIKE2, ((FilterExpression.SimpleClause) fe.getClause()).operator);
+
+		p = new FilterELParser("a not in b");
+		fe = p.parse();
+		assertNotNull(fe);
+		assertEquals("a", ((FilterExpression.SimpleClause) fe.getClause()).identifier);
+		assertEquals("b",((FilterExpression.SimpleClause) fe.getClause()).value);
+		assertEquals(FilterExpression.ComparisonOperator.NOT_IN, ((FilterExpression.SimpleClause) fe.getClause()).operator);
+
+		p = new FilterELParser("a !in b");
+		fe = p.parse();
+		assertNotNull(fe);
+		assertEquals("a", ((FilterExpression.SimpleClause) fe.getClause()).identifier);
+		assertEquals("b",((FilterExpression.SimpleClause) fe.getClause()).value);
+		assertEquals(FilterExpression.ComparisonOperator.NOT_IN2, ((FilterExpression.SimpleClause) fe.getClause()).operator);
+	}
+
+	@Test
 	public void testUQLLogical() throws ParseException {
 		FilterELParser p = new FilterELParser("(a eq b) and (c ne d)");
 		FilterExpression fe = p.parse();

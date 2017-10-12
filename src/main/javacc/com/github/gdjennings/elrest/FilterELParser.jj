@@ -47,14 +47,17 @@ TOKEN: /*RESERVED TOKENS FOR UQL */
 	|  <RPAREN: ")">
 	|  <EQUALS: "eq">
 	|  <NOTEQUAL: "ne">
+	|  <NOTEQUAL2: "!eq">
 	|  <LESSTHAN: "lt">
 	|  <LESSTHANEQUAL: "lte">
 	|  <GREATERTHAN: "gt">
 	|  <GREATERTHANEQUAL: "gte">
 	|  <LIKE: "like">
-	|  <NOT_LIKE: "notlike">
+	|  <NOT_LIKE: "not like">
+	|  <NOT_LIKE2: "!like">
 	|  <IN: "in">
 	|  <NOT_IN: "not in">
+	|  <NOT_IN2: "!in">
 }
 
 TOKEN: /* the keywords and comparators - QUOTEDVALUE accounts for escaped quotes as well */
@@ -129,7 +132,7 @@ FilterExpression.Clause queryTerm() :
 				tClause = new FilterExpression.SimpleClause();
 				((FilterExpression.SimpleClause)tClause).identifier = tField.image;
 			}
-			(tOp = <EQUALS> | tOp = <NOTEQUAL> | tOp = <IN> | tOp = <NOT_IN> | tOp = <LESSTHAN> | tOp = <LESSTHANEQUAL> | tOp = <GREATERTHAN> | tOp = <GREATERTHANEQUAL> | tOp = <LIKE> | tOp = <NOT_LIKE>) {
+			(tOp = <EQUALS> | tOp = <NOTEQUAL> | tOp = <NOTEQUAL2> | tOp = <NOT_LIKE> | tOp = <NOT_LIKE2> | tOp = <IN> | tOp = <NOT_IN> | tOp = <NOT_IN2> | tOp = <LIKE> | tOp = <LESSTHAN> | tOp = <LESSTHANEQUAL> | tOp = <GREATERTHAN> | tOp = <GREATERTHANEQUAL>) {
 				((FilterExpression.SimpleClause)tClause).operator = FilterExpression.ComparisonOperator.fromString(tOp.image.toUpperCase());
 			} 
 			( tValue = <DOUBLE_QUOTED_STRING> { tValue.image = tValue.image.replaceAll("^\"|\"$", "");} | 

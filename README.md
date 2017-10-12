@@ -8,9 +8,9 @@ expression := [(]property *operator* value[)][ and | or expression]
 
 ## Supported operators:
 * **lt, lte, gt, gte**: Less Than/Greater than (or equal to). Must operate on Number or <? extends Date> fields else throws ParseException. Value for date fields should milliseconds.
-* **eq, neq**: Equals/Not Equals
-* **in, notin**: value must be quoted comma separated values
-* **like, notlike**: HQL like operator with "%" as wildcard
+* **eq, ne, !eq**: Equals/Not Equals
+* **in, not in, !in**: value must be quoted comma separated values
+* **like, not like, !like**: HQL like operator with "%" as wildcard. Value must be quoted
 
 
 ## Supported Functions

@@ -222,7 +222,7 @@ public class JpaELFilterImpl {
 				}
 				break;
 			}
-			case NE: {
+			case NE: case NOT_EQ: {
 				if (propertyRootAttribute instanceof PluralAttribute && emptySetMatch) {
 					tempPredicate = build.isNotEmpty(propertyRoot);
 				} else if (emptySetMatch) {
@@ -237,9 +237,13 @@ public class JpaELFilterImpl {
 				}
 				break;
 			}
-			case IN: {
+			case IN: case NOT_IN: case NOT_IN2: {
 				if (emptySetMatch) {
-					tempPredicate = build.notEqual(build.size(propertyRoot), 0);
+					if (clause.operator == FilterExpression.ComparisonOperator.IN) {
+						tempPredicate = build.notEqual(build.size(propertyRoot), 0);
+					} else {
+						tempPredicate = build.equal(build.size(propertyRoot), 0);
+					}
 				} else {
 					Expression<String> exp = propertyRoot;
 					CriteriaBuilder.In in = build.in(exp);
@@ -256,7 +260,7 @@ public class JpaELFilterImpl {
 						}
 					}
 					// check property is not null before evaluating in or we get an error
-					Predicate inPredicate = in;
+					Predicate inPredicate = (clause.operator == FilterExpression.ComparisonOperator.IN) ? in : in.not();
 					Predicate notNullPredicate = build.isNotNull(resultRoot);
 					tempPredicate = build.and(notNullPredicate, inPredicate);
 				}
@@ -275,7 +279,7 @@ public class JpaELFilterImpl {
 				}
 				break;
 			}
-			case NOT_LIKE: {
+			case NOT_LIKE: case NOT_LIKE2: {
 				if (emptySetMatch) {
 					tempPredicate = build.equal(build.size(propertyRoot), 0);
 				} else {

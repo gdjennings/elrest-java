@@ -27,14 +27,17 @@ public class FilterExpression {
 	public enum ComparisonOperator {
 		EQ("eq"),
 		NE("ne"),
+		NOT_EQ("!eq"),
 		LT("lt"),
 		LTE("lte"),
 		GTE("gte"),
 		GT("gt"),
 		IN("in"),
 		NOT_IN("not in"),
+		NOT_IN2("!in"),
 		LIKE("like"),
-		NOT_LIKE("notlike");
+		NOT_LIKE("not like"),
+		NOT_LIKE2("!like");
 
 		private String op;
 

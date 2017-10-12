@@ -78,12 +78,12 @@ public class JPAFilterImplTest {
 		em.persist(i1);
 
 		OneToManyInstance i2 = new OneToManyInstance();
-		i1.setName("i2");
+		i2.setName("i2");
 		i2.setOne(i1);
 		em.persist(i2);
 
 		OneToManyInstance i3 = new OneToManyInstance();
-		i1.setName("i3");
+		i3.setName("i3");
 		i3.setOne(i1);
 		em.persist(i3);
 
@@ -92,12 +92,142 @@ public class JPAFilterImplTest {
 		em.flush();
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, OneToManyInstance.class, OneToManyInstance.class);
-		el.buildExpression("many.name eq i2");
+		el.buildExpression("many.name eq \"i2\"");
 		List<OneToManyInstance> r = el.getResultList(Integer.MAX_VALUE, 0);
 		assertEquals(1, r.size());
 		assertEquals("i1", r.get(0).getName());
 
 	}
+
+	@Test
+	public void testIn() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setNumber(1);
+		e1.setField("A");
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setNumber(2);
+		e2.setField("A");
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name in testName1");
+		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("testName1", r.get(0).getName());
+	}
+
+	@Test
+	public void testNotIn() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setNumber(1);
+		e1.setField("A");
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setNumber(2);
+		e2.setField("A");
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name not in testName1");
+		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("testName2", r.get(0).getName());
+
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name !in testName1");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("testName2", r.get(0).getName());
+	}
+
+	@Test
+	public void testNotEq() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setNumber(1);
+		e1.setField("A");
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setNumber(2);
+		e2.setField("A");
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name !eq testName1");
+		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("testName2", r.get(0).getName());
+
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name ne testName1");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("testName2", r.get(0).getName());
+	}
+
+	@Test
+	public void testNotLike() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setNumber(1);
+		e1.setField("A");
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setNumber(2);
+		e2.setField("A");
+		em.persist(e2);
+
+		Instance e3 = new Instance();
+		e3.setName("otherName");
+		e3.setNumber(3);
+		e3.setField("B");
+		em.persist(e3);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name not like \"testName%\"");
+		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("otherName", r.get(0).getName());
+
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name !like \"testName%\"");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("otherName", r.get(0).getName());
+	}
+
 
 	@Test
 	public void hibernatePluralPathTest() {
