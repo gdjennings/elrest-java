@@ -8,6 +8,7 @@ package com.github.gdjennings.elrest;
 
 import com.github.gdjennings.elrest.test.Instance;
 import com.github.gdjennings.elrest.test.OneToManyInstance;
+import com.github.gdjennings.elrest.test.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +23,8 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Root;
 import javax.persistence.metamodel.Bindable;
 import javax.persistence.metamodel.PluralAttribute;
+import javax.xml.bind.DatatypeConverter;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -228,6 +231,40 @@ public class JPAFilterImplTest {
 		assertEquals("otherName", r.get(0).getName());
 	}
 
+
+	@Test
+	public void testISO8601() throws Exception {
+		User u1 = new User();
+		u1.setUsername("u1");
+		u1.setCreatedDate(Calendar.getInstance());
+		em.persist(u1);
+
+		User u2 = new User();
+		u2.setUsername("u2");
+		Calendar future = Calendar.getInstance();
+		future.set(Calendar.YEAR, 3000);
+		u2.setCreatedDate(future);
+		em.persist(u2);
+
+		Thread.sleep(2);
+
+		System.out.println("createdDate lt "+Calendar.getInstance().getTimeInMillis());
+		JpaELFilterImpl el = new JpaELFilterImpl(em, User.class, User.class);
+		el.buildExpression("createdDate lt "+Calendar.getInstance().getTimeInMillis());
+		List<User> r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getUsername());
+
+
+		System.out.println("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
+		el = new JpaELFilterImpl(em, User.class, User.class);
+		el.buildExpression("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getUsername());
+	}
 
 	@Test
 	public void hibernatePluralPathTest() {
