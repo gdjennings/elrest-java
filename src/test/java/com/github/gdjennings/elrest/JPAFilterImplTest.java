@@ -267,6 +267,64 @@ public class JPAFilterImplTest {
 	}
 
 	@Test
+	public void testNotEqualsNull() throws Exception {
+		Instance u1 = new Instance();
+		u1.setName("u1");
+		u1.setaDate(Calendar.getInstance());
+		u1.setAnEnum(Instance.InstanceEnum.TYPE1);
+		u1.setNumber(1);
+		u1.setaLong(1L << 40);
+		u1.setField("notNull");
+		em.persist(u1);
+
+		Instance u2 = new Instance();
+		em.persist(u2);
+
+		Thread.sleep(2);
+
+		System.out.println("aDate ne null");
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aDate ne null");
+		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getName());
+
+		System.out.println("field ne null");
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("field ne null");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getName());
+
+		System.out.println("number ne null");
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("number ne null");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(2, r.size());
+
+		System.out.println("autoboxedLong ne null");
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong ne null");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getName());
+
+
+		System.out.println("anEnum ne null");
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("anEnum ne null");
+		r = el.getResultList(Integer.MAX_VALUE, 0);
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals("u1", r.get(0).getName());
+
+	}
+
+	@Test
 	public void hibernatePluralPathTest() {
 		CriteriaBuilder build = em.getCriteriaBuilder();
 		CriteriaQuery<OneToManyInstance> critQ = build.createQuery(OneToManyInstance.class);

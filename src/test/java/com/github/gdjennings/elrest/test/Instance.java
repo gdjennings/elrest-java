@@ -7,9 +7,14 @@ package com.github.gdjennings.elrest.test;
 
 
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import java.util.Calendar;
 
 /**
  * @author grantjennings
@@ -17,13 +22,27 @@ import javax.persistence.ManyToOne;
 @Entity
 public class Instance {
 
+	public enum InstanceEnum {
+		TYPE0,
+		TYPE1,
+		TYPE2
+	}
+
 	@Id
 	@GeneratedValue(generator = "system-uuid")
 	private String name;
 
 	private int number;
 
+	private Long aLong;
+
 	private String field;
+
+	@Enumerated(EnumType.STRING)
+	private InstanceEnum anEnum;
+
+	@Temporal(TemporalType.TIMESTAMP)
+	private Calendar aDate;
 
 	@ManyToOne
 	private Instance circular;
@@ -65,5 +84,27 @@ public class Instance {
 		this.field = field;
 	}
 
+	public Calendar getaDate() {
+		return aDate;
+	}
 
+	public void setaDate(Calendar aDate) {
+		this.aDate = aDate;
+	}
+
+	public InstanceEnum getAnEnum() {
+		return anEnum;
+	}
+
+	public void setAnEnum(InstanceEnum anEnum) {
+		this.anEnum = anEnum;
+	}
+
+	public Long getaLong() {
+		return aLong;
+	}
+
+	public void setaLong(Long aLong) {
+		this.aLong = aLong;
+	}
 }

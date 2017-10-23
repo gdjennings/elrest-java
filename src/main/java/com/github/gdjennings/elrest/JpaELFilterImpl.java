@@ -188,32 +188,34 @@ public class JpaELFilterImpl {
 		}
 		boolean emptySetMatch = discriminatorEntity == null;
 
-		if (propertyRoot.getJavaType().isEnum() && discriminatorEntity != null) {
-			discriminatorEntity = Enum.valueOf(propertyRoot.getJavaType(), String.valueOf(discriminatorEntity));
-		} else if (Date.class.isAssignableFrom(propertyRoot.getJavaType())) {
-			timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
-			try {
-				long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
-				discriminatorEntity = new Date(millisSinceEpoch);
-			} catch (NumberFormatException e) {
-				discriminatorEntity = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity)).getTime();
-			}
-		} else if (Calendar.class.isAssignableFrom(propertyRoot.getJavaType())) {
-			calendarProperty = propertyRoot.getParentPath().<Calendar>get(leafPropName);
-			Calendar tmp = Calendar.getInstance();
-			try {
-				long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
-				tmp.setTimeInMillis(millisSinceEpoch);
-			} catch (NumberFormatException e) {
-				tmp = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity));
-			}
-			discriminatorEntity = tmp;
-		} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType())
-				|| EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
-			try {
-				discriminatorEntity = new BigDecimal(String.valueOf(discriminatorEntity));
-			} catch (NumberFormatException e) {
-				throw new ParseException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
+		if (discriminatorEntity != null) {
+			if (propertyRoot.getJavaType().isEnum()) {
+				discriminatorEntity = Enum.valueOf(propertyRoot.getJavaType(), String.valueOf(discriminatorEntity));
+			} else if (Date.class.isAssignableFrom(propertyRoot.getJavaType())) {
+				timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
+				try {
+					long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
+					discriminatorEntity = new Date(millisSinceEpoch);
+				} catch (NumberFormatException e) {
+					discriminatorEntity = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity)).getTime();
+				}
+			} else if (Calendar.class.isAssignableFrom(propertyRoot.getJavaType())) {
+				calendarProperty = propertyRoot.getParentPath().<Calendar>get(leafPropName);
+				Calendar tmp = Calendar.getInstance();
+				try {
+					long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
+					tmp.setTimeInMillis(millisSinceEpoch);
+				} catch (NumberFormatException e) {
+					tmp = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity));
+				}
+				discriminatorEntity = tmp;
+			} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType())
+					|| EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
+				try {
+					discriminatorEntity = new BigDecimal(String.valueOf(discriminatorEntity));
+				} catch (NumberFormatException e) {
+					throw new ParseException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
+				}
 			}
 		}
 
