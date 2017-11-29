@@ -133,12 +133,14 @@ public class JPAFilterImplTest {
 		e1.setName("testName1");
 		e1.setNumber(1);
 		e1.setField("A");
+		e1.setaBool(true);
 		em.persist(e1);
 
 		Instance e2 = new Instance();
 		e2.setName("testName2");
 		e2.setNumber(2);
 		e2.setField("A");
+		e2.setaBool(false);
 		em.persist(e2);
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
@@ -166,12 +168,14 @@ public class JPAFilterImplTest {
 		e1.setName("testName1");
 		e1.setNumber(1);
 		e1.setField("A");
+		e1.setaBool(true);
 		em.persist(e1);
 
 		Instance e2 = new Instance();
 		e2.setName("testName2");
 		e2.setNumber(2);
 		e2.setField("A");
+		e2.setaBool(false);
 		em.persist(e2);
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);

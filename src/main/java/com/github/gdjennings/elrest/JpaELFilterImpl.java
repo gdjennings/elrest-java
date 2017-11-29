@@ -182,16 +182,17 @@ public class JpaELFilterImpl {
 		}
 
 
+		Class propertyJavaType = propertyRoot.getJavaType();
 		Object discriminatorEntity = "null".equalsIgnoreCase(clause.value) ? null : clause.value;
-		if (changeCase != null && !String.class.isAssignableFrom(propertyRoot.getJavaType())) {
+		if (changeCase != null && !String.class.isAssignableFrom(propertyJavaType)) {
 			throw new ParseException(changeCase + " function on non-string type");
 		}
 		boolean emptySetMatch = discriminatorEntity == null;
 
 		if (discriminatorEntity != null) {
-			if (propertyRoot.getJavaType().isEnum()) {
-				discriminatorEntity = Enum.valueOf(propertyRoot.getJavaType(), String.valueOf(discriminatorEntity));
-			} else if (Date.class.isAssignableFrom(propertyRoot.getJavaType())) {
+			if (propertyJavaType.isEnum()) {
+				discriminatorEntity = Enum.valueOf(propertyJavaType, String.valueOf(discriminatorEntity));
+			} else if (Date.class.isAssignableFrom(propertyJavaType)) {
 				timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
 				try {
 					long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
@@ -199,7 +200,7 @@ public class JpaELFilterImpl {
 				} catch (NumberFormatException e) {
 					discriminatorEntity = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity)).getTime();
 				}
-			} else if (Calendar.class.isAssignableFrom(propertyRoot.getJavaType())) {
+			} else if (Calendar.class.isAssignableFrom(propertyJavaType)) {
 				calendarProperty = propertyRoot.getParentPath().<Calendar>get(leafPropName);
 				Calendar tmp = Calendar.getInstance();
 				try {
@@ -216,6 +217,8 @@ public class JpaELFilterImpl {
 				} catch (NumberFormatException e) {
 					throw new ParseException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
 				}
+			} else if (propertyJavaType == boolean.class || propertyJavaType == Boolean.class) {
+				discriminatorEntity = Boolean.valueOf(String.valueOf(discriminatorEntity));
 			}
 		}
 

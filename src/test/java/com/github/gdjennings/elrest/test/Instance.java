@@ -6,6 +6,8 @@
 package com.github.gdjennings.elrest.test;
 
 
+import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -43,6 +45,12 @@ public class Instance {
 
 	@Temporal(TemporalType.TIMESTAMP)
 	private Calendar aDate;
+
+	private boolean aBool;
+
+	@Convert(converter = YesNoConverter.class)
+	@Column(columnDefinition = "VARCHAR(1)")
+	private Boolean convertedBool;
 
 	@ManyToOne
 	private Instance circular;
@@ -106,5 +114,21 @@ public class Instance {
 
 	public void setaLong(Long aLong) {
 		this.aLong = aLong;
+	}
+
+	public boolean isaBool() {
+		return aBool;
+	}
+
+	public void setaBool(boolean aBool) {
+		this.aBool = aBool;
+	}
+
+	public Boolean getConvertedBool() {
+		return convertedBool;
+	}
+
+	public void setConvertedBool(Boolean convertedBool) {
+		this.convertedBool = convertedBool;
 	}
 }

@@ -60,6 +60,51 @@ public class ExpressionImplTest {
 	}
 
 	@Test
+	public void testBooleanProperty() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setaBool(true);
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setaBool(false);
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aBool eq true");
+		List r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+	}
+
+
+	@Test
+	public void testConvertedProperty() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setConvertedBool(true);
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setConvertedBool(false);
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("convertedBool eq true");
+		List r = el.getResultList(Integer.MAX_VALUE, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+	}
+
+	@Test
 	public void testPropertyIn() throws Exception {
 
 		Instance e1 = new Instance();
