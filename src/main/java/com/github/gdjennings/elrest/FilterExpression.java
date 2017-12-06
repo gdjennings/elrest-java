@@ -19,6 +19,13 @@ public class FilterExpression {
 		this.clause = clause;
 	}
 
+	public String toString() {
+		if (clause != null) {
+			return clause.toString();
+		} else {
+			return "true";
+		}
+	}
 
 	public enum LogicalOperator {
 		AND, OR

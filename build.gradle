@@ -15,7 +15,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'java'
 
 group = "com.github.gdjennings"
-version = "1.0.3"
+version = "1.0.4"
 description = "ODATA-like filter expressions to JPA Criteria Queries"
 
 
@@ -74,6 +74,7 @@ dependencies {
 	// https://mvnrepository.com/artifact/org.eclipse.persistence/eclipselink
 	testRuntime group: 'org.eclipse.persistence', name: 'eclipselink', version: '2.6.4'
 	testRuntime group: 'com.h2database', name: 'h2', version: '1.4.195'
+	testRuntime group: 'org.glassfish', name: 'javax.el', version:'3.0.0'
 
 }
 
