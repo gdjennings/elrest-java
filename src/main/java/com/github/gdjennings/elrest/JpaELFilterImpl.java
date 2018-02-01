@@ -211,7 +211,7 @@ public class JpaELFilterImpl {
 				}
 				discriminatorEntity = tmp;
 			} else if (!EnumSet.of(FilterExpression.ComparisonOperator.IN, FilterExpression.ComparisonOperator.NOT_IN).contains(clause.operator) && Number.class.isAssignableFrom(propertyRoot.getJavaType())
-					|| EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE).contains(clause.operator)) {
+					|| EnumSet.of(FilterExpression.ComparisonOperator.GT, FilterExpression.ComparisonOperator.GTE, FilterExpression.ComparisonOperator.GE, FilterExpression.ComparisonOperator.LT, FilterExpression.ComparisonOperator.LTE, FilterExpression.ComparisonOperator.LE).contains(clause.operator)) {
 				try {
 					discriminatorEntity = new BigDecimal(String.valueOf(discriminatorEntity));
 				} catch (NumberFormatException e) {
@@ -328,7 +328,7 @@ public class JpaELFilterImpl {
 				}
 				break;
 			}
-			case GTE: {
+			case GTE: case GE: {
 				if (timestampProperty != null) {
 					tempPredicate = build.greaterThanOrEqualTo(timestampProperty, (Date) discriminatorEntity);
 				} else if (calendarProperty != null) {
@@ -338,7 +338,7 @@ public class JpaELFilterImpl {
 				}
 				break;
 			}
-			case LTE: {
+			case LTE: case LE: {
 				if (timestampProperty != null) {
 					tempPredicate = build.lessThanOrEqualTo(timestampProperty, (Date) discriminatorEntity);
 				} else if (calendarProperty != null) {
@@ -406,7 +406,7 @@ public class JpaELFilterImpl {
 
 
 	public Long count() {
-		critQ.select(build.count(resultRoot));
+		critQ.select(build.countDistinct(resultRoot));
 		return (Long) em.createQuery(critQ).getSingleResult();
 	}
 

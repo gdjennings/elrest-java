@@ -41,6 +41,60 @@ public class ExpressionImplTest {
 	}
 
 	@Test
+	public void testPropertyGreaterThanLessThan() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setaLong(1L);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setaLong(2L);
+
+		ELFilterImpl el = new ELFilterImpl("aLong gte 2", new HashMap<>());
+		List r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new ELFilterImpl("aLong ge 2", new HashMap<>());
+		r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new ELFilterImpl("aLong gt 1", new HashMap<>());
+		r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new ELFilterImpl("aLong lte 1", new HashMap<>());
+		r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+
+		el = new ELFilterImpl("aLong le 1", new HashMap<>());
+		r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+
+		el = new ELFilterImpl("aLong lt 2", new HashMap<>());
+		r = (List)el.filter(Arrays.asList(e1, e2));
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+	}
+
+	@Test
 	public void testBooleanProperty() throws Exception {
 
 		Instance e1 = new Instance();

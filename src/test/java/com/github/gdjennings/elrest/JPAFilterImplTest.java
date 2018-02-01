@@ -428,4 +428,98 @@ public class JPAFilterImplTest {
 		assertEquals(2, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 	}
+
+	@Test
+	public void testPropertyGreaterThanLessThan() throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setaLong(1L);
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setaLong(2L);
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong gte 2");
+		List r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong ge 2");
+		r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong gt 1");
+		r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong lte 1");
+		r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong le 1");
+		r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+
+		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("aLong lt 2");
+		r = (List)el.getResultList(0, 0);
+
+		assertNotNull(r);
+		assertEquals(1, r.size());
+		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
+	}
+
+
+	@Test
+	public void testJoinedCount() throws ParseException {
+		OneToManyInstance i1 = new OneToManyInstance();
+		i1.setName("i1");
+		em.persist(i1);
+
+		OneToManyInstance i2 = new OneToManyInstance();
+		i2.setName("i2");
+		i2.setaString("child");
+		i2.setOne(i1);
+		em.persist(i2);
+
+		OneToManyInstance i3 = new OneToManyInstance();
+		i3.setName("i3");
+		i3.setaString("child");
+		i3.setOne(i1);
+		em.persist(i3);
+
+		i1.getMany().add(i2);
+		i1.getMany().add(i3);
+		em.flush();
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, OneToManyInstance.class, OneToManyInstance.class);
+		el.buildExpression("many.aString eq \"child\"");
+		long r = el.count();
+		assertEquals(1, r);
+
+	}
+
+
 }

@@ -23,6 +23,8 @@ public class OneToManyInstance {
 	@GeneratedValue(generator = "system-uuid")
 	private String name;
 
+	private String aString;
+
 	@OneToMany(mappedBy = "one")
 	private Set<OneToManyInstance> many = new HashSet<>();
 
@@ -58,5 +60,11 @@ public class OneToManyInstance {
 		return name;
 	}
 
+	public String getaString() {
+		return aString;
+	}
 
+	public void setaString(String aString) {
+		this.aString = aString;
+	}
 }

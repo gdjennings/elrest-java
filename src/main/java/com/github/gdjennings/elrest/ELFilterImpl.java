@@ -29,6 +29,8 @@ public class ELFilterImpl {
 
 	public ELFilterImpl(String filter, Map<String, Object> context) throws ParseException {
 		this.filter = filter;
+		context.forEach(elp::setValue);
+
 	}
 
 
@@ -63,6 +65,12 @@ public class ELFilterImpl {
 			simpleClause.value = simpleClause.value.equals("null") ? null : '"' + simpleClause.value + '"';
 
 			switch (simpleClause.operator) {
+				case GTE:
+					simpleClause.operator = FilterExpression.ComparisonOperator.GE;
+					break;
+				case LTE:
+					simpleClause.operator = FilterExpression.ComparisonOperator.LE;
+					break;
 				case NOT_EQ:
 					simpleClause.operator = FilterExpression.ComparisonOperator.NE;
 					break;
@@ -94,14 +102,22 @@ public class ELFilterImpl {
 
 	public Object filter(Object entity) throws ParseException {
 		if (Collection.class.isAssignableFrom(entity.getClass())) {
-			return ((Collection)entity).stream().filter(e -> {
-				try {
-					return this.filter(e) != null;
-				} catch (ParseException e1) {
-					return false;
+			try {
+				return ((Collection) entity).stream().filter(e -> {
+					try {
+						return this.filter(e) != null;
+					} catch (ParseException e1) {
+						throw new RuntimeException(e1);
+					}
+				})
+						.collect(Collectors.toList());
+			} catch (RuntimeException e) {
+				if (e.getCause() instanceof ParseException) {
+					throw (ParseException)e.getCause();
+				} else {
+					throw e;
 				}
-			})
-					.collect(Collectors.toList());
+			}
 		} else {
 			FilterExpression expression = new FilterELParser(filter).parse();
 			this.updateExpression(expression.getClause(), entity);
