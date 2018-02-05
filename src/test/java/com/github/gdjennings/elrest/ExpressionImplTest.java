@@ -8,7 +8,7 @@ package com.github.gdjennings.elrest;
 
 import com.github.gdjennings.elrest.test.Instance;
 import com.github.gdjennings.elrest.test.User;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.xml.bind.DatatypeConverter;
 import java.util.Arrays;
@@ -16,8 +16,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 /**
  * @author grantjennings
@@ -242,6 +242,8 @@ public class ExpressionImplTest {
 		Calendar future = Calendar.getInstance();
 		future.set(Calendar.YEAR, 3000);
 		u2.setCreatedDate(future);
+
+		Thread.sleep(1);
 
 		System.out.println("createdDate lt "+Calendar.getInstance().getTimeInMillis());
 		ELFilterImpl el = new ELFilterImpl("createdDate lt "+Calendar.getInstance().getTimeInMillis());

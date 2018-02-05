@@ -6,6 +6,8 @@
 package com.github.gdjennings.elrest.test;
 
 
+import org.hibernate.annotations.GenericGenerator;
+
 import javax.persistence.Column;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
@@ -31,7 +33,6 @@ public class Instance {
 	}
 
 	@Id
-	@GeneratedValue(generator = "system-uuid")
 	private String name;
 
 	private int number;

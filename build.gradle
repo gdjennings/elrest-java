@@ -4,6 +4,7 @@ buildscript {
 	}
 	dependencies {
 		classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+		classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.3'
 	}
 }
 plugins {
@@ -13,9 +14,13 @@ plugins {
 
 apply plugin: 'maven-publish'
 apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+
 
 group = "com.github.gdjennings"
-version = "1.0.6"
+version = "1.0.7"
 description = "ODATA-like filter expressions to JPA Criteria Queries"
 
 
@@ -69,13 +74,16 @@ dependencies {
 	// https://mvnrepository.com/artifact/javax.persistence/persistence-api
 	// https://mvnrepository.com/artifact/org.eclipse.persistence/javax.persistence
 	compile group: 'org.eclipse.persistence', name: 'javax.persistence', version: '2.1.1'
+	compile group: 'org.hibernate', name: 'hibernate-entitymanager', version: '5.2.12.Final'
 
-	testCompile group: 'junit', name: 'junit', version: '4.10'
-	// https://mvnrepository.com/artifact/org.eclipse.persistence/eclipselink
+	testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.3'
+	testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.3'
+	testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.0.3'
+
 	testRuntime group: 'org.eclipse.persistence', name: 'eclipselink', version: '2.6.4'
 	testRuntime group: 'com.h2database', name: 'h2', version: '1.4.195'
 	testRuntime group: 'org.glassfish', name: 'javax.el', version:'3.0.0'
-
+	testRuntime("org.junit.platform:junit-platform-launcher:1.0.3")
 }
 
 if (project.hasProperty('release')) {

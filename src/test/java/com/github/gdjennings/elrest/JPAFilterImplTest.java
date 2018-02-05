@@ -6,15 +6,20 @@
 package com.github.gdjennings.elrest;
 
 
+import com.github.gdjennings.elrest.test.CompositeKeyInstance;
 import com.github.gdjennings.elrest.test.Instance;
+import com.github.gdjennings.elrest.test.OneToManyCompositeInstance;
 import com.github.gdjennings.elrest.test.OneToManyInstance;
 import com.github.gdjennings.elrest.test.User;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.Tuple;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -27,30 +32,29 @@ import javax.xml.bind.DatatypeConverter;
 import java.util.Calendar;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author grantjennings
  */
 public class JPAFilterImplTest {
-	EntityManagerFactory emf = Persistence.createEntityManagerFactory("default");
-
 
 	EntityManager em;
 
-	@Before
-	public void createEntityManager() {
-		em = emf.createEntityManager();
+	@BeforeEach
+	public void createEntityManager(TestInfo info) {
+		em = Persistence.createEntityManagerFactory(info.getDisplayName()).createEntityManager();
 		em.getTransaction().begin();
 	}
 
-	@After
+	@AfterEach
 	public void rollback() {
 		em.getTransaction().rollback();
 	}
 
-	@Test
-	public void testGroupBy() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testGroupBy(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -66,16 +70,18 @@ public class JPAFilterImplTest {
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Tuple.class);
 		el.groupBy(new String[]{"field"}, "sum(number)", new String[]{"field"});
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		List<Tuple> r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("A", ((Tuple) r.get(0)).get(0));
-		assertEquals(3, ((Tuple) r.get(0)).get(1));
+		long sum = Long.valueOf(r.get(0).get(1).toString());
+		assertEquals(3L, sum);
 	}
 
-	@Test
-	public void testOneToManyQuery() throws ParseException {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testOneToManyQuery(String provider) throws ParseException {
 		OneToManyInstance i1 = new OneToManyInstance();
 		i1.setName("i1");
 		em.persist(i1);
@@ -102,8 +108,9 @@ public class JPAFilterImplTest {
 
 	}
 
-	@Test
-	public void testIn() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testIn(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -126,8 +133,9 @@ public class JPAFilterImplTest {
 		assertEquals("testName1", r.get(0).getName());
 	}
 
-	@Test
-	public void testNotIn() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testNotIn(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -161,8 +169,9 @@ public class JPAFilterImplTest {
 		assertEquals("testName2", r.get(0).getName());
 	}
 
-	@Test
-	public void testNotEq() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testNotEq(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -196,8 +205,9 @@ public class JPAFilterImplTest {
 		assertEquals("testName2", r.get(0).getName());
 	}
 
-	@Test
-	public void testNotLike() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testNotLike(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -236,8 +246,9 @@ public class JPAFilterImplTest {
 	}
 
 
-	@Test
-	public void testISO8601() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testISO8601(String provider) throws Exception {
 		User u1 = new User();
 		u1.setUsername("u1");
 		u1.setCreatedDate(Calendar.getInstance());
@@ -270,8 +281,9 @@ public class JPAFilterImplTest {
 		assertEquals("u1", r.get(0).getUsername());
 	}
 
-	@Test
-	public void testNotEqualsNull() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testNotEqualsNull(String provider) throws Exception {
 		Instance u1 = new Instance();
 		u1.setName("u1");
 		u1.setaDate(Calendar.getInstance());
@@ -282,6 +294,7 @@ public class JPAFilterImplTest {
 		em.persist(u1);
 
 		Instance u2 = new Instance();
+		u2.setName("u2");
 		em.persist(u2);
 
 		Thread.sleep(2);
@@ -328,8 +341,10 @@ public class JPAFilterImplTest {
 
 	}
 
-	@Test
-	public void hibernatePluralPathTest() {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	@Disabled
+	public void hibernatePluralPathTest(String provider) {
 		CriteriaBuilder build = em.getCriteriaBuilder();
 		CriteriaQuery<OneToManyInstance> critQ = build.createQuery(OneToManyInstance.class);
 		Root<OneToManyInstance> resultRoot = critQ.from(OneToManyInstance.class);
@@ -340,8 +355,9 @@ public class JPAFilterImplTest {
 		assertTrue(shouldBePluralAttribute instanceof PluralAttribute);
 	}
 
-	@Test
-	public void testPropertyEquals() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testPropertyEquals(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -360,8 +376,9 @@ public class JPAFilterImplTest {
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 	}
 
-	@Test
-	public void testBooleanProperty() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testBooleanProperty(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -383,8 +400,9 @@ public class JPAFilterImplTest {
 	}
 
 
-	@Test
-	public void testConvertedProperty() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testConvertedProperty(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -405,8 +423,9 @@ public class JPAFilterImplTest {
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 	}
 
-	@Test
-	public void testPropertyIn() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testPropertyIn(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -422,15 +441,16 @@ public class JPAFilterImplTest {
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("name in \"testName1,testName2\"");
-		List r = el.getResultList(0, 0);
+		List r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(2, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 	}
 
-	@Test
-	public void testPropertyGreaterThanLessThan() throws Exception {
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testPropertyGreaterThanLessThan(String provider) throws Exception {
 
 		Instance e1 = new Instance();
 		e1.setName("testName1");
@@ -444,7 +464,7 @@ public class JPAFilterImplTest {
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong gte 2");
-		List r = (List)el.getResultList(0, 0);
+		List r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -452,7 +472,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong ge 2");
-		r = (List)el.getResultList(0, 0);
+		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -460,7 +480,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong gt 1");
-		r = (List)el.getResultList(0, 0);
+		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -468,7 +488,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong lte 1");
-		r = (List)el.getResultList(0, 0);
+		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -476,7 +496,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong le 1");
-		r = (List)el.getResultList(0, 0);
+		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -484,7 +504,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong lt 2");
-		r = (List)el.getResultList(0, 0);
+		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -492,29 +512,42 @@ public class JPAFilterImplTest {
 	}
 
 
-	@Test
-	public void testJoinedCount() throws ParseException {
-		OneToManyInstance i1 = new OneToManyInstance();
-		i1.setName("i1");
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testJoinedCount(String provider) throws ParseException {
+		CompositeKeyInstance i1 = new CompositeKeyInstance();
+		i1.setKey1("i1k1");
+		i1.setKey2("i1k2");
+		i1.setString1("parent");
 		em.persist(i1);
+		em.flush();
 
-		OneToManyInstance i2 = new OneToManyInstance();
+		OneToManyCompositeInstance i2 = new OneToManyCompositeInstance();
 		i2.setName("i2");
 		i2.setaString("child");
-		i2.setOne(i1);
+		i2.setComposite(i1);
 		em.persist(i2);
 
-		OneToManyInstance i3 = new OneToManyInstance();
+		OneToManyCompositeInstance i3 = new OneToManyCompositeInstance();
 		i3.setName("i3");
 		i3.setaString("child");
-		i3.setOne(i1);
+		i3.setComposite(i1);
 		em.persist(i3);
 
 		i1.getMany().add(i2);
 		i1.getMany().add(i3);
+
+		CompositeKeyInstance i4 = new CompositeKeyInstance();
+		i4.setKey1("i1k4.1");
+		i4.setKey2("i1k4.2");
+		i4.setString1("parent");
+		em.persist(i4);
+
 		em.flush();
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, OneToManyInstance.class, OneToManyInstance.class);
+
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, CompositeKeyInstance.class, CompositeKeyInstance.class);
 		el.buildExpression("many.aString eq \"child\"");
 		long r = el.count();
 		assertEquals(1, r);

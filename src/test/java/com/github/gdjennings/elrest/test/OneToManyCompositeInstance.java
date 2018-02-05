@@ -6,8 +6,9 @@
 package com.github.gdjennings.elrest.test;
 
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinColumns;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import java.util.HashSet;
@@ -17,18 +18,19 @@ import java.util.Set;
  * @author grantjennings
  */
 @Entity
-public class OneToManyInstance {
+public class OneToManyCompositeInstance {
 
 	@Id
 	private String name;
 
 	private String aString;
 
-	@OneToMany(mappedBy = "one")
-	private Set<OneToManyInstance> many = new HashSet<>();
-
-	@ManyToOne
-	private OneToManyInstance one;
+	@JoinColumns({
+			@JoinColumn(name = "key1", referencedColumnName = "key1"),
+			@JoinColumn(name = "key2", referencedColumnName = "key2")
+	})
+	@ManyToOne(targetEntity = CompositeKeyInstance.class)
+	private CompositeKeyInstance composite;
 
 	public String getName() {
 		return name;
@@ -38,20 +40,12 @@ public class OneToManyInstance {
 		this.name = name;
 	}
 
-	public Set<OneToManyInstance> getMany() {
-		return many;
+	public CompositeKeyInstance getComposite() {
+		return composite;
 	}
 
-	public void setMany(Set<OneToManyInstance> many) {
-		this.many = many;
-	}
-
-	public OneToManyInstance getOne() {
-		return one;
-	}
-
-	public void setOne(OneToManyInstance one) {
-		this.one = one;
+	public void setComposite(CompositeKeyInstance composite) {
+		this.composite = composite;
 	}
 
 	public String getId() {

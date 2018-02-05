@@ -19,7 +19,6 @@ import java.util.Set;
 public class ManyToMany1 {
 
 	@Id
-	@GeneratedValue(generator = "system-uuid")
 	private String id;
 
 	@ManyToMany(mappedBy = "to1")

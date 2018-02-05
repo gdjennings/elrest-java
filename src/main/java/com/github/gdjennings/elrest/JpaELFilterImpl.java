@@ -17,6 +17,7 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
+import javax.persistence.criteria.Subquery;
 import javax.persistence.metamodel.Attribute;
 import javax.persistence.metamodel.CollectionAttribute;
 import javax.persistence.metamodel.EntityType;
@@ -34,6 +35,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -46,7 +48,10 @@ public class JpaELFilterImpl {
 	private final EntityManager em;
 	private final CriteriaBuilder build;
 	private final CriteriaQuery critQ;
+	private final CriteriaQuery countQ;
+	private final Subquery countSubQ;
 	private final Root resultRoot;
+	private final Root countRoot;
 	private final Map<Attribute, Join> joins = new HashMap<>();
 
 	static final Pattern CASE_PATTERN = Pattern.compile("(lower|upper)\\((.*)\\)");
@@ -60,6 +65,10 @@ public class JpaELFilterImpl {
 			critQ = build.createQuery(resultClass);
 		}
 		resultRoot = critQ.from(entityClass);
+
+		countQ = build.createQuery(Long.class);
+		countSubQ = countQ.subquery(entityClass);
+		countRoot = countSubQ.from(entityClass);
 	}
 
 	/**
@@ -83,9 +92,11 @@ public class JpaELFilterImpl {
 				break;
 			case 1:
 				critQ.where(predicates.get(0));
+				countSubQ.where(predicates.get(0));
 				break;
 			default:
 				critQ.where(build.and(predicates.toArray(new Predicate[predicates.size()])));
+				countSubQ.where(build.and(predicates.toArray(new Predicate[predicates.size()])));
 		}
 
 
@@ -406,8 +417,16 @@ public class JpaELFilterImpl {
 
 
 	public Long count() {
-		critQ.select(build.countDistinct(resultRoot));
-		return (Long) em.createQuery(critQ).getSingleResult();
+		Set<SingularAttribute> pkAttributes = resultRoot.getModel().getIdClassAttributes();
+		if (pkAttributes.size() == 1) {
+			critQ.select(build.countDistinct(resultRoot));
+			return (Long) em.createQuery(critQ).getSingleResult();
+		} else {
+			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
+			critQ.multiselect(pkAttributes.stream().map(pk -> resultRoot.get(pk)).collect(Collectors.toList())).distinct(true);
+			List allResults = em.createQuery(critQ).getResultList();
+			return Long.valueOf(allResults.size());
+		}
 	}
 
 	public Object getSingleResult() {

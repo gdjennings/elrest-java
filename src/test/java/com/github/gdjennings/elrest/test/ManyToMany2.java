@@ -18,7 +18,6 @@ import java.util.Set;
 @Entity
 public class ManyToMany2 {
 	@Id
-	@GeneratedValue(generator = "system-uuid")
 	private String id;
 
 	@ManyToMany
