@@ -25,6 +25,7 @@ import javax.persistence.metamodel.ListAttribute;
 import javax.persistence.metamodel.PluralAttribute;
 import javax.persistence.metamodel.SetAttribute;
 import javax.persistence.metamodel.SingularAttribute;
+import javax.persistence.metamodel.Type;
 import javax.xml.bind.DatatypeConverter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -417,12 +418,14 @@ public class JpaELFilterImpl {
 
 
 	public Long count() {
-		Set<SingularAttribute> pkAttributes = resultRoot.getModel().getIdClassAttributes();
-		if (pkAttributes.size() == 1) {
+		Type idType = resultRoot.getModel().getIdType();
+
+		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
 			critQ.select(build.countDistinct(resultRoot));
 			return (Long) em.createQuery(critQ).getSingleResult();
 		} else {
 			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
+			Set<SingularAttribute> pkAttributes = resultRoot.getModel().getIdClassAttributes();
 			critQ.multiselect(pkAttributes.stream().map(pk -> resultRoot.get(pk)).collect(Collectors.toList())).distinct(true);
 			List allResults = em.createQuery(critQ).getResultList();
 			return Long.valueOf(allResults.size());

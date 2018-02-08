@@ -511,6 +511,30 @@ public class JPAFilterImplTest {
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 	}
 
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testSimpleCount(String provider) throws Exception {
+
+		Instance e1 = new Instance();
+		e1.setName("testName1");
+		e1.setNumber(1);
+		e1.setField("A");
+		em.persist(e1);
+
+		Instance e2 = new Instance();
+		e2.setName("testName2");
+		e2.setNumber(2);
+		e2.setField("A");
+		em.persist(e2);
+
+		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
+		el.buildExpression("name in testName1");
+		long counted = el.count();
+
+		assertEquals(1, counted);
+	}
+
+
 
 	@ParameterizedTest(name="{0}")
 	@ValueSource(strings = { "hibernate", "eclipselink" })
