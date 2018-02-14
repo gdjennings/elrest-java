@@ -23,11 +23,6 @@ public class CompositeKeyInstance {
 
 	}
 
-	public CompositeKeyInstance(String key1, String key2) {
-		this.key1 = key1;
-		this.key2 = key2;
-	}
-
 	@OneToMany(mappedBy = "composite")
 	private Set<OneToManyCompositeInstance> many = new HashSet<>();
 

@@ -464,7 +464,7 @@ public class JPAFilterImplTest {
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong gte 2");
-		List r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		List r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -472,7 +472,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong ge 2");
-		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -480,7 +480,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong gt 1");
-		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -488,7 +488,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong lte 1");
-		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -496,7 +496,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong le 1");
-		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -504,7 +504,7 @@ public class JPAFilterImplTest {
 
 		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
 		el.buildExpression("aLong lt 2");
-		r = (List)el.getResultList(Integer.MAX_VALUE, 0);
+		r = el.getResultList(Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());

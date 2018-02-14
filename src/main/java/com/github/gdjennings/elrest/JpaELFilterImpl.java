@@ -17,7 +17,6 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
-import javax.persistence.criteria.Subquery;
 import javax.persistence.metamodel.Attribute;
 import javax.persistence.metamodel.CollectionAttribute;
 import javax.persistence.metamodel.EntityType;
@@ -44,32 +43,25 @@ import java.util.stream.Collectors;
 /**
  * @author grantjennings
  */
-public class JpaELFilterImpl {
+public class JpaELFilterImpl<E,R> {
+	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
+
 
 	private final EntityManager em;
 	private final CriteriaBuilder build;
-	private final CriteriaQuery critQ;
-	private final CriteriaQuery countQ;
-	private final Subquery countSubQ;
-	private final Root resultRoot;
-	private final Root countRoot;
+	private final CriteriaQuery<R> critQ;
+	private final Root<E> resultRoot;
+	private String filterExpression;
+
 	private final Map<Attribute, Join> joins = new HashMap<>();
 
 	static final Pattern CASE_PATTERN = Pattern.compile("(lower|upper)\\((.*)\\)");
 
-	public JpaELFilterImpl(EntityManager em, Class entityClass, Class resultClass) {
+	public JpaELFilterImpl(EntityManager em, Class<E> entityClass, Class<R> resultClass) {
 		this.em = em;
 		build = em.getCriteriaBuilder();
-		if (Tuple.class.isAssignableFrom(resultClass)) {
-			critQ = build.createTupleQuery();
-		} else {
-			critQ = build.createQuery(resultClass);
-		}
+		critQ = build.createQuery(resultClass);
 		resultRoot = critQ.from(entityClass);
-
-		countQ = build.createQuery(Long.class);
-		countSubQ = countQ.subquery(entityClass);
-		countRoot = countSubQ.from(entityClass);
 	}
 
 	/**
@@ -78,6 +70,7 @@ public class JpaELFilterImpl {
 	 * @throws IllegalArgumentException
 	 */
 	public void buildExpression(String filter) throws ParseException {
+		this.filterExpression = filter;
 
 		HashMap<String, Object> expressionContext = new HashMap<>();
 
@@ -93,11 +86,9 @@ public class JpaELFilterImpl {
 				break;
 			case 1:
 				critQ.where(predicates.get(0));
-				countSubQ.where(predicates.get(0));
 				break;
 			default:
 				critQ.where(build.and(predicates.toArray(new Predicate[predicates.size()])));
-				countSubQ.where(build.and(predicates.toArray(new Predicate[predicates.size()])));
 		}
 
 
@@ -134,7 +125,7 @@ public class JpaELFilterImpl {
 	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Map<String, Object> context) throws ParseException {
 		Predicate tempPredicate;
 		Path propertyRoot = resultRoot;
-		EntityType entityType = resultRoot.getModel();
+		EntityType<E> entityType = resultRoot.getModel();
 		Path<Date> timestampProperty = null;
 		Path<Calendar> calendarProperty = null;
 		Attribute propertyRootAttribute = null;
@@ -205,7 +196,7 @@ public class JpaELFilterImpl {
 			if (propertyJavaType.isEnum()) {
 				discriminatorEntity = Enum.valueOf(propertyJavaType, String.valueOf(discriminatorEntity));
 			} else if (Date.class.isAssignableFrom(propertyJavaType)) {
-				timestampProperty = propertyRoot.getParentPath().<Date>get(leafPropName);
+				timestampProperty = propertyRoot.getParentPath().get(leafPropName);
 				try {
 					long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
 					discriminatorEntity = new Date(millisSinceEpoch);
@@ -213,7 +204,7 @@ public class JpaELFilterImpl {
 					discriminatorEntity = DatatypeConverter.parseDateTime(String.valueOf(discriminatorEntity)).getTime();
 				}
 			} else if (Calendar.class.isAssignableFrom(propertyJavaType)) {
-				calendarProperty = propertyRoot.getParentPath().<Calendar>get(leafPropName);
+				calendarProperty = propertyRoot.getParentPath().get(leafPropName);
 				Calendar tmp = Calendar.getInstance();
 				try {
 					long millisSinceEpoch = Long.parseLong(String.valueOf(discriminatorEntity));
@@ -367,122 +358,6 @@ public class JpaELFilterImpl {
 		return tempPredicate;
 	}
 
-	/**
-	 * @param distinctFields
-	 * @return
-	 * @throws IllegalArgumentException if the field is not part of the entity
-	 */
-	public JpaELFilterImpl distinct(String... distinctFields) {
-		if (distinctFields != null) {
-			List<Selection> multiSelection = new ArrayList<>();
-			for (String f : distinctFields) {
-				multiSelection.add(resultRoot.get(f));
-			}
-
-			if (distinctFields.length == 1) {
-				critQ.select(multiSelection.get(0)).distinct(true);
-			} else if (distinctFields.length > 0) {
-				critQ.multiselect(multiSelection).distinct(true);
-			}
-		}
-
-		return this;
-	}
-
-	/**
-	 * @param fields
-	 * @return
-	 * @throws IllegalArgumentException if the field is not part of the entity
-	 */
-	public JpaELFilterImpl selectFields(String[] fields) {
-		List<Selection> multiSelection = new ArrayList<>();
-
-		for (String f : fields) {
-			multiSelection.add(resultRoot.get(f));
-		}
-
-		critQ.multiselect(multiSelection);
-		return this;
-	}
-
-	public JpaELFilterImpl orderBy(String orderByFields) {
-		if (orderByFields != null) {
-			if (orderByFields.startsWith("-")) {
-				critQ.orderBy(build.desc(getPath(orderByFields.substring(1))));
-			} else {
-				critQ.orderBy(build.asc(getPath(orderByFields)));
-			}
-		}
-		return this;
-	}
-
-
-	public Long count() {
-		Type idType = resultRoot.getModel().getIdType();
-
-		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
-			critQ.select(build.countDistinct(resultRoot));
-			return (Long) em.createQuery(critQ).getSingleResult();
-		} else {
-			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
-			Set<SingularAttribute> pkAttributes = resultRoot.getModel().getIdClassAttributes();
-			critQ.multiselect(pkAttributes.stream().map(pk -> resultRoot.get(pk)).collect(Collectors.toList())).distinct(true);
-			List allResults = em.createQuery(critQ).getResultList();
-			return Long.valueOf(allResults.size());
-		}
-	}
-
-	public Object getSingleResult() {
-		return em.createQuery(critQ.distinct(true)).getSingleResult();
-	}
-
-	public List getResultList(int limit, int skip) {
-		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).getResultList();
-	}
-
-	public List getResultList(int limit, int skip, EntityGraph graph) {
-		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
-	}
-
-	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
-
-	public JpaELFilterImpl groupBy(String[] fields, String aggregate, String[] groupBy) {
-		List<Selection> multiSelection = new ArrayList<>();
-
-		for (String f : fields) {
-			multiSelection.add(getPath(f));
-		}
-
-		Matcher m = AGGREGATE_FUNCTION.matcher(aggregate);
-		if (m.matches()) {
-			switch (m.group("fn")) {
-				case "count":
-					multiSelection.add(build.count(getPath(m.group("field"))));
-					break;
-				case "sum":
-					multiSelection.add(build.sum(getPath(m.group("field"))));
-					break;
-				case "min":
-					multiSelection.add(build.min(getPath(m.group("field"))));
-					break;
-				case "max":
-					multiSelection.add(build.max(getPath(m.group("field"))));
-					break;
-				case "avg":
-					multiSelection.add(build.avg(getPath(m.group("field"))));
-					break;
-			}
-
-			critQ.multiselect(multiSelection);
-			critQ.groupBy(
-					Arrays.stream(groupBy)
-							.map(f -> getPath(f))
-							.collect(Collectors.toList())
-			);
-		}
-		return this;
-	}
-
 	private Path getPath(String field) {
 		String[] lhs = field.split("\\.");
 		Path propertyRoot = resultRoot;
@@ -523,5 +398,129 @@ public class JpaELFilterImpl {
 			}
 		}
 		return propertyRoot;
+	}
+
+	/**
+	 * @param distinctFields
+	 * @return
+	 * @throws IllegalArgumentException if the field is not part of the entity
+	 */
+	public JpaELFilterImpl distinct(String... distinctFields) {
+		if (distinctFields != null) {
+			List<Selection<?>> multiSelection = new ArrayList<>();
+			for (String f : distinctFields) {
+				multiSelection.add(resultRoot.get(f));
+			}
+
+			if (distinctFields.length == 1) {
+				critQ.select(resultRoot.get(distinctFields[0])).distinct(true);
+			} else if (distinctFields.length > 0) {
+				critQ.multiselect(multiSelection).distinct(true);
+			}
+		}
+
+		return this;
+	}
+
+	/**
+	 * @param fields
+	 * @return
+	 * @throws IllegalArgumentException if the field is not part of the entity
+	 */
+	public JpaELFilterImpl<E,R> selectFields(String[] fields) {
+		List<Selection<?>> multiSelection = new ArrayList<>();
+
+		for (String f : fields) {
+			multiSelection.add(resultRoot.get(f));
+		}
+
+		critQ.multiselect(multiSelection);
+		return this;
+	}
+
+	public JpaELFilterImpl<E,R> orderBy(String orderByFields) {
+		if (orderByFields != null) {
+			if (orderByFields.startsWith("-")) {
+				critQ.orderBy(build.desc(getPath(orderByFields.substring(1))));
+			} else {
+				critQ.orderBy(build.asc(getPath(orderByFields)));
+			}
+		}
+		return this;
+	}
+
+	public JpaELFilterImpl<E,R> groupBy(String[] fields, String aggregate, String[] groupBy) {
+		List<Selection<?>> multiSelection = new ArrayList<>();
+
+		for (String f : fields) {
+			multiSelection.add(getPath(f));
+		}
+
+		Matcher m = AGGREGATE_FUNCTION.matcher(aggregate);
+		if (m.matches()) {
+			switch (m.group("fn")) {
+				case "count":
+					multiSelection.add(build.count(getPath(m.group("field"))));
+					break;
+				case "sum":
+					multiSelection.add(build.sum(getPath(m.group("field"))));
+					break;
+				case "min":
+					multiSelection.add(build.min(getPath(m.group("field"))));
+					break;
+				case "max":
+					multiSelection.add(build.max(getPath(m.group("field"))));
+					break;
+				case "avg":
+					multiSelection.add(build.avg(getPath(m.group("field"))));
+					break;
+			}
+
+			critQ.multiselect(multiSelection);
+			List<Expression<?>> groupings = new ArrayList<>();
+			Arrays.stream(groupBy).map(f -> getPath(f)).forEach(p -> groupings.add(p));
+			critQ.groupBy(groupings);
+
+		}
+		return this;
+	}
+
+
+
+	public Long count() {
+		Type idType = resultRoot.getModel().getIdType();
+
+		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
+			critQ.select((Selection<? extends R>) build.countDistinct(resultRoot));
+			return (Long) em.createQuery(critQ).getSingleResult();
+		} else {
+			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
+			String[] fields = resultRoot.getModel().getIdClassAttributes().stream().map(pk -> pk.getName()).collect(Collectors.toList()).toArray(new String[0]);
+
+			try {
+				JpaELFilterImpl<E, Tuple> counter = new JpaELFilterImpl(em, resultRoot.getJavaType(), Tuple.class);
+				counter.buildExpression(this.filterExpression);
+
+				counter.distinct(fields);
+
+				List<Tuple> allResults = counter.getResultList(Integer.MAX_VALUE, 0);
+
+				return Long.valueOf(allResults.size());
+			} catch (ParseException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public R getSingleResult() {
+		return em.createQuery(critQ.distinct(true)).getSingleResult();
+	}
+
+	public List<R> getResultList(int limit, int skip) {
+		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).getResultList();
+	}
+
+	public List<R> getResultList(int limit, int skip, EntityGraph graph) {
+		return em.createQuery(critQ).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
 	}
 }
