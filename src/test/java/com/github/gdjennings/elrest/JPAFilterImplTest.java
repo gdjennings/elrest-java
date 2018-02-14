@@ -14,7 +14,6 @@ import com.github.gdjennings.elrest.test.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -562,19 +561,32 @@ public class JPAFilterImplTest {
 		i1.getMany().add(i3);
 
 		CompositeKeyInstance i4 = new CompositeKeyInstance();
-		i4.setKey1("i1k4.1");
-		i4.setKey2("i1k4.2");
+		i4.setKey1("i1k1");
+		i4.setKey2("i1k4");
 		i4.setString1("parent");
 		em.persist(i4);
 
+		OneToManyCompositeInstance i42 = new OneToManyCompositeInstance();
+		i42.setName("i42");
+		i42.setaString("child");
+		i42.setComposite(i4);
+		em.persist(i42);
+
+		i4.getMany().add(i42);
+
+
+		CompositeKeyInstance i5 = new CompositeKeyInstance();
+		i5.setKey1("i1k5");
+		i5.setKey2("i1k2");
+		i5.setString1("parent");
+		em.persist(i5);
+
 		em.flush();
-
-
 
 		JpaELFilterImpl el = new JpaELFilterImpl(em, CompositeKeyInstance.class, CompositeKeyInstance.class);
 		el.buildExpression("many.aString eq \"child\"");
 		long r = el.count();
-		assertEquals(1, r);
+		assertEquals(2, r);
 
 	}
 

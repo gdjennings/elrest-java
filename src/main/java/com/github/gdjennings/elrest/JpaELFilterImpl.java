@@ -7,7 +7,6 @@ package com.github.gdjennings.elrest;
 
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
-import javax.persistence.Tuple;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
@@ -35,7 +34,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -496,19 +494,14 @@ public class JpaELFilterImpl<E,R> {
 		} else {
 			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
 			String[] fields = resultRoot.getModel().getIdClassAttributes().stream().map(pk -> pk.getName()).collect(Collectors.toList()).toArray(new String[0]);
-
-			try {
-				JpaELFilterImpl<E, Tuple> counter = new JpaELFilterImpl(em, resultRoot.getJavaType(), Tuple.class);
-				counter.buildExpression(this.filterExpression);
-
-				counter.distinct(fields);
-
-				List<Tuple> allResults = counter.getResultList(Integer.MAX_VALUE, 0);
-
-				return Long.valueOf(allResults.size());
-			} catch (ParseException e) {
-				throw new RuntimeException(e);
+			Expression keyConcat = resultRoot.get(fields[0]);
+			// this may still cause some grief if any of the pk columns are NULL. Can use coalesce(nullif(...
+			// see https://hibernate.atlassian.net/browse/HHH-11042
+			for (String field : Arrays.copyOfRange(fields, 1, fields.length)) {
+				build.concat(resultRoot.get(field), "|");
 			}
+			critQ.select((Selection<? extends R>) build.countDistinct(keyConcat));
+			return (Long) em.createQuery(critQ).getSingleResult();
 		}
 	}
 
