@@ -74,7 +74,7 @@ dependencies {
 	// https://mvnrepository.com/artifact/javax.persistence/persistence-api
 	// https://mvnrepository.com/artifact/org.eclipse.persistence/javax.persistence
 	compile group: 'org.eclipse.persistence', name: 'javax.persistence', version: '2.1.1'
-	compile group: 'org.hibernate', name: 'hibernate-entitymanager', version: '5.2.12.Final'
+	compile group: 'org.hibernate', name: 'hibernate-entitymanager', version: '5.2.13.Final'
 
 	testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.3'
 	testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.3'
