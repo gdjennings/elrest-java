@@ -494,7 +494,7 @@ public class JpaELFilterImpl<E,R> {
 	}
 
 
-	private TypedQuery<R> prepareQuery(List<Selection<?>> selections) {
+	private TypedQuery<R> prepareQuery(boolean distinct, List<Selection<?>> selections) {
 		if (selections.size() == 1) {
 			rootQ.select((Selection<? extends R>) selections.get(0));
 		} else if (!selections.isEmpty()) {
@@ -507,7 +507,7 @@ public class JpaELFilterImpl<E,R> {
 			rootQ.where(build.exists((Subquery) critQ));
 		}
 
-		rootQ.distinct(true);
+		rootQ.distinct(distinct);
 		return em.createQuery(rootQ);
 	}
 
@@ -516,7 +516,7 @@ public class JpaELFilterImpl<E,R> {
 		TypedQuery countQ;
 
 		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
-			countQ = prepareQuery(Arrays.asList(build.countDistinct(resultRoot)));
+			countQ = prepareQuery(false, Arrays.asList(build.countDistinct(resultRoot)));
 		} else {
 			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
 			Attribute firstPkField = resultRoot.getModel().getIdClassAttributes().iterator().next();
@@ -536,7 +536,7 @@ public class JpaELFilterImpl<E,R> {
 	}
 
 	public R getSingleResult() {
-		return prepareQuery(multiSelection).getSingleResult();
+		return prepareQuery(true, multiSelection).getSingleResult();
 	}
 
 	public List<R> getResultList(int limit, int skip) {
@@ -544,6 +544,6 @@ public class JpaELFilterImpl<E,R> {
 	}
 
 	public List<R> getResultList(int limit, int skip, EntityGraph graph) {
-		return prepareQuery(multiSelection).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
+		return prepareQuery(true, multiSelection).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
 	}
 }
