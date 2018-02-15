@@ -586,12 +586,13 @@ public class JPAFilterImplTest {
 
 		JpaELFilterImpl<CompositeKeyInstance, CompositeKeyInstance> el = new JpaELFilterImpl<>(em, CompositeKeyInstance.class, CompositeKeyInstance.class);
 		el.buildExpression("many.aString eq \"child\"");
-		List<CompositeKeyInstance> results = el.getResultList(100, 0);
-		assertNotNull(results);
-		assertEquals(2, results.size());
 
 		long r = el.count();
 		assertEquals(2, r);
+
+		List<CompositeKeyInstance> results = el.getResultList(100, 0);
+		assertNotNull(results);
+		assertEquals(2, results.size());
 	}
 
 

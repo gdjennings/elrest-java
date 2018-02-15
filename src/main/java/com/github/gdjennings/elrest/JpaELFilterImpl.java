@@ -75,6 +75,7 @@ public class JpaELFilterImpl<E,R> {
 			resultRoot = rootRoot;
 		} else {
 			critQ = rootQ.subquery(entityClass);
+			critQ.from(entityClass);
 			resultRoot = ((Subquery)critQ).correlate(rootRoot);
 		}
 	}

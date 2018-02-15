@@ -20,7 +20,7 @@ apply plugin: 'org.junit.platform.gradle.plugin'
 
 
 group = "com.github.gdjennings"
-version = "1.1.0-SNAPSHOT"
+version = "1.1.0"
 description = "ODATA-like filter expressions to JPA Criteria Queries"
 
 
