@@ -67,9 +67,11 @@ public class JPAFilterImplTest {
 		e2.setField("A");
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Tuple.class);
-		el.groupBy(new String[]{"field"}, "sum(number)", new String[]{"field"});
-		List<Tuple> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter<Instance> el = new JpaELFilterImpl(em, Instance.class)
+				.select("field", "sum(number)")
+				.groupBy("field");
+
+		List<Tuple> r = el.getResultList(Tuple.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -99,9 +101,8 @@ public class JPAFilterImplTest {
 		i1.getMany().add(i3);
 		em.flush();
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, OneToManyInstance.class, OneToManyInstance.class);
-		el.buildExpression("many.name eq \"i2\"");
-		List<OneToManyInstance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, OneToManyInstance.class).filter("many.name eq \"i2\"");
+		List<OneToManyInstance> r = el.getResultList(OneToManyInstance.class ,Integer.MAX_VALUE, 0);
 		assertEquals(1, r.size());
 		assertEquals("i1", r.get(0).getName());
 
@@ -123,9 +124,8 @@ public class JPAFilterImplTest {
 		e2.setField("A");
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name in testName1");
-		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class).filter("name in testName1");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -150,18 +150,18 @@ public class JPAFilterImplTest {
 		e2.setaBool(false);
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name not in testName1");
-		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name not in testName1");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("testName2", r.get(0).getName());
 
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name !in testName1");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name !in testName1");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -186,18 +186,18 @@ public class JPAFilterImplTest {
 		e2.setaBool(false);
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name !eq testName1");
-		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name !eq testName1");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("testName2", r.get(0).getName());
 
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name ne testName1");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name ne testName1");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -226,18 +226,18 @@ public class JPAFilterImplTest {
 		e3.setField("B");
 		em.persist(e3);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name not like \"testName%\"");
-		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name not like \"testName%\"");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("otherName", r.get(0).getName());
 
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name !like \"testName%\"");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name !like \"testName%\"");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -263,18 +263,18 @@ public class JPAFilterImplTest {
 		Thread.sleep(2);
 
 		System.out.println("createdDate lt "+Calendar.getInstance().getTimeInMillis());
-		JpaELFilterImpl el = new JpaELFilterImpl(em, User.class, User.class);
-		el.buildExpression("createdDate lt "+Calendar.getInstance().getTimeInMillis());
-		List<User> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, User.class)
+		.filter("createdDate lt "+Calendar.getInstance().getTimeInMillis());
+		List<User> r = el.getResultList(User.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getUsername());
 
 
 		System.out.println("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
-		el = new JpaELFilterImpl(em, User.class, User.class);
-		el.buildExpression("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, User.class)
+		.filter("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
+		r = el.getResultList( User.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getUsername());
@@ -299,41 +299,37 @@ public class JPAFilterImplTest {
 		Thread.sleep(2);
 
 		System.out.println("aDate ne null");
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aDate ne null");
-		List<Instance> r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class).filter("aDate ne null");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 		System.out.println("field ne null");
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("field ne null");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("field ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 		System.out.println("number ne null");
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("number ne null");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class).filter("number ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(2, r.size());
 
 		System.out.println("autoboxedLong ne null");
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong ne null");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class).filter("aLong ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 
 		System.out.println("anEnum ne null");
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("anEnum ne null");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class).filter("anEnum ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
@@ -366,9 +362,9 @@ public class JPAFilterImplTest {
 		e2.setName("testName2");
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name eq \"testName1\"");
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name eq \"testName1\"");
+		List r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -389,9 +385,9 @@ public class JPAFilterImplTest {
 		e2.setaBool(false);
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aBool eq true");
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aBool eq true");
+		List r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -413,9 +409,9 @@ public class JPAFilterImplTest {
 		e2.setConvertedBool(false);
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("convertedBool eq true");
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("convertedBool eq true");
+		List r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -438,9 +434,9 @@ public class JPAFilterImplTest {
 		e3.setName("testName3");
 		em.persist(e3);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name in \"testName1,testName2\"");
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name in \"testName1,testName2\"");
+		List r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(2, r.size());
@@ -461,49 +457,49 @@ public class JPAFilterImplTest {
 		e2.setaLong(2L);
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong gte 2");
-		List r = el.getResultList(Integer.MAX_VALUE, 0);
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong gte 2");
+		List r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong ge 2");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong ge 2");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong gt 1");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong gt 1");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong lte 1");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong lte 1");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong le 1");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong le 1");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 
-		el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("aLong lt 2");
-		r = el.getResultList(Integer.MAX_VALUE, 0);
+		el = new JpaELFilterImpl(em, Instance.class)
+		.filter("aLong lt 2");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -526,8 +522,8 @@ public class JPAFilterImplTest {
 		e2.setField("A");
 		em.persist(e2);
 
-		JpaELFilterImpl el = new JpaELFilterImpl(em, Instance.class, Instance.class);
-		el.buildExpression("name in testName1");
+		ELFilter el = new JpaELFilterImpl(em, Instance.class)
+		.filter("name in testName1");
 		long counted = el.count();
 
 		assertEquals(1, counted);
@@ -584,13 +580,13 @@ public class JPAFilterImplTest {
 		em.flush();
 
 
-		JpaELFilterImpl<CompositeKeyInstance, CompositeKeyInstance> el = new JpaELFilterImpl<>(em, CompositeKeyInstance.class, CompositeKeyInstance.class);
-		el.buildExpression("many.aString eq \"child\"");
+		ELFilter<CompositeKeyInstance> el = new JpaELFilterImpl<>(em, CompositeKeyInstance.class)
+		.filter("many.aString eq \"child\"");
 
 		long r = el.count();
 		assertEquals(2, r);
 
-		List<CompositeKeyInstance> results = el.getResultList(100, 0);
+		List<CompositeKeyInstance> results = el.getResultList(CompositeKeyInstance.class, 100, 0);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 	}

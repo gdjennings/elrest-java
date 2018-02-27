@@ -26,17 +26,16 @@ public class Example {
 	}
 
 	public <T> List<T> filter(Class<T> entityClass, String filter, int limit, int skip) throws ParseException {
-		JpaELFilterImpl fx = new JpaELFilterImpl(em, entityClass, entityClass);
-		fx.buildExpression(filter);
+		ELFilter fx = new JpaELFilterImpl(em, entityClass).filter(filter);
 
-		return fx.getResultList(limit, skip);
+		return fx.getResultList(entityClass, limit, skip);
 	}
 
-	public List<Tuple> groupBy(Class entityClass, String[] select, String aggregate, String[] groupByFields) {
-		JpaELFilterImpl fx = new JpaELFilterImpl(em, entityClass, Tuple.class);
-		fx.groupBy(select, aggregate, groupByFields);
-
-		return fx.getResultList(0, 0);
+	public List<Tuple> groupBy(Class entityClass, String[] select, String[] groupByFields) {
+		ELFilter fx = new JpaELFilterImpl(em, entityClass)
+			.select(select)
+			.groupBy(groupByFields);
+		return fx.getResultList(Tuple.class, 0, 0);
 	}
 
 
@@ -49,7 +48,7 @@ public class Example {
 		eg.filter(User.class, "createdDate gt " + (System.currentTimeMillis() - 24 * 60 * 60 * 1000), 0, 0);
 
 		// count the number of users in each postcode
-		eg.groupBy(User.class, new String[]{"postCode"}, "count(id)", new String[]{"postCode"});
+		eg.groupBy(User.class, new String[]{"postCode","count(id)"}, new String[]{"postCode"});
 	}
 
 }

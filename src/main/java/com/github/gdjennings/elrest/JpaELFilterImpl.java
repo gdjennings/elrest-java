@@ -7,6 +7,7 @@ package com.github.gdjennings.elrest;
 
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
+import javax.persistence.Tuple;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.AbstractQuery;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -14,6 +15,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Order;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -39,106 +41,62 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author grantjennings
  */
-public class JpaELFilterImpl<E,R> {
+public class JpaELFilterImpl<E> extends ELFilter<E> {
 	private static final Pattern AGGREGATE_FUNCTION = Pattern.compile("(?<fn>count|sum|min|max|avg)\\((?<field>.*)\\)");
 
 
 	private final EntityManager em;
-	private final CriteriaBuilder build;
-	private final CriteriaQuery<R> rootQ;
-	private final AbstractQuery critQ;
-	private final Root<E> resultRoot;
-	private final Root<E> rootRoot;
-
-	private String filterExpression;
-	private List<Selection<?>> multiSelection = new ArrayList<>();
-	private boolean isDistinctQuery = false;
-
-	private final Map<Attribute, Join> joins = new HashMap<>();
+	private CriteriaBuilder build;
+	private Class<E> entityClass;
 
 	static final Pattern CASE_PATTERN = Pattern.compile("(lower|upper)\\((.*)\\)");
 
-	public JpaELFilterImpl(EntityManager em, Class<E> entityClass, Class<R> resultClass) {
+	public JpaELFilterImpl(EntityManager em, Class<E> entityClass) {
 		this.em = em;
 		build = em.getCriteriaBuilder();
-		rootQ = build.createQuery(resultClass);
-		rootRoot = rootQ.from(entityClass);
+		this.entityClass = entityClass;
+	}
 
-		Type idType = rootRoot.getModel().getIdType();
+	private void buildPredicate(AbstractQuery query, Root resultRoot, Map<Attribute, Join> joins) {
 
-		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
-			critQ = (AbstractQuery<E>) rootQ;
-			resultRoot = rootRoot;
-		} else {
-			critQ = rootQ.subquery(entityClass);
-			critQ.from(entityClass);
-			resultRoot = ((Subquery)critQ).correlate(rootRoot);
+		Predicate predicate = null;
+		if (expression != null && filter.trim().length() > 0) {
+			FilterExpression.Clause rootClause = this.expression.getClause();
+			predicate = buildPredicate(rootClause, resultRoot, joins);
+		}
+
+		if (predicate != null) {
+			query.where(predicate);
 		}
 	}
 
-	/**
-	 * @param filter
-	 * @throws com.github.gdjennings.elrest.ParseException
-	 * @throws IllegalArgumentException
-	 */
-	public void buildExpression(String filter) throws ParseException {
-		this.filterExpression = filter;
-
-		HashMap<String, Object> expressionContext = new HashMap<>();
-
-		List<Predicate> predicates = new ArrayList<>();
-
-		if (filter != null && filter.trim().length() > 0) {
-
-			predicates.add(toPredicate(filter, expressionContext));
-		}
-
-		switch (predicates.size()) {
-			case 0:
-				break;
-			case 1:
-				critQ.where(predicates.get(0));
-				break;
-			default:
-				critQ.where(build.and(predicates.toArray(new Predicate[predicates.size()])));
-		}
-
-
-	}
-
-	private Predicate toPredicate(String filter, Map<String, Object> context) throws ParseException {
-
-		FilterExpression expression = new FilterELParser(filter).parse();
-		FilterExpression.Clause rootClause = expression.getClause();
-		return buildPredicate(rootClause, context);
-	}
-
-	private Predicate buildPredicate(FilterExpression.Clause clause, Map<String, Object> context) throws ParseException {
+	private Predicate buildPredicate(FilterExpression.Clause clause, Root resultRoot, Map<Attribute, Join> joins) {
 		if (clause instanceof FilterExpression.CompoundClause) {
-			return buildCompoundPredicate((FilterExpression.CompoundClause) clause, context);
+			return buildCompoundPredicate((FilterExpression.CompoundClause) clause, resultRoot, joins);
 		} else if (clause instanceof FilterExpression.SimpleClause) {
-			return buildSimplePredicate((FilterExpression.SimpleClause) clause, context);
+			return buildSimplePredicate((FilterExpression.SimpleClause) clause, resultRoot, joins);
 		} else {
 			return null;
 		}
 	}
 
-	private Predicate buildCompoundPredicate(FilterExpression.CompoundClause clause, Map<String, Object> context) throws ParseException {
+	private Predicate buildCompoundPredicate(FilterExpression.CompoundClause clause, Root resultRoot, Map<Attribute, Join> joins) {
 		Predicate tempPredicate = null;
 		if (clause.operator == FilterExpression.LogicalOperator.AND) {
-			tempPredicate = build.and(buildPredicate(clause.left, context), buildPredicate(clause.right, context));
+			tempPredicate = build.and(buildPredicate(clause.left, resultRoot, joins), buildPredicate(clause.right, resultRoot, joins));
 		}
 		if (clause.operator == FilterExpression.LogicalOperator.OR) {
-			tempPredicate = build.or(buildPredicate(clause.left, context), buildPredicate(clause.right, context));
+			tempPredicate = build.or(buildPredicate(clause.left, resultRoot, joins), buildPredicate(clause.right, resultRoot, joins));
 		}
 		return tempPredicate;
 	}
 
-	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Map<String, Object> context) throws ParseException {
+	private Predicate buildSimplePredicate(FilterExpression.SimpleClause clause, Root resultRoot, Map<Attribute, Join> joins) {
 		Predicate tempPredicate;
 		Path propertyRoot = resultRoot;
 		EntityType<E> entityType = resultRoot.getModel();
@@ -204,7 +162,7 @@ public class JpaELFilterImpl<E,R> {
 		Class propertyJavaType = propertyRoot.getJavaType();
 		Object discriminatorEntity = "null".equalsIgnoreCase(clause.value) ? null : clause.value;
 		if (changeCase != null && !String.class.isAssignableFrom(propertyJavaType)) {
-			throw new ParseException(changeCase + " function on non-string type");
+			throw new IllegalArgumentException(changeCase + " function on non-string type");
 		}
 		boolean emptySetMatch = discriminatorEntity == null;
 
@@ -234,7 +192,7 @@ public class JpaELFilterImpl<E,R> {
 				try {
 					discriminatorEntity = new BigDecimal(String.valueOf(discriminatorEntity));
 				} catch (NumberFormatException e) {
-					throw new ParseException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
+					throw new NumberFormatException("Invalid value for numeric property: " + clause.identifier + " caused by: " + e.getMessage());
 				}
 			} else if (propertyJavaType == boolean.class || propertyJavaType == Boolean.class) {
 				discriminatorEntity = Boolean.valueOf(String.valueOf(discriminatorEntity));
@@ -374,7 +332,7 @@ public class JpaELFilterImpl<E,R> {
 		return tempPredicate;
 	}
 
-	private Path getPath(String field) {
+	private Path getPath(String field, Root resultRoot, Map<Attribute, Join> joins) {
 		String[] lhs = field.split("\\.");
 		Path propertyRoot = resultRoot;
 		Attribute propertyRootAttribute = null;
@@ -416,135 +374,116 @@ public class JpaELFilterImpl<E,R> {
 		return propertyRoot;
 	}
 
-	public JpaELFilterImpl<E,R> orderBy(String orderByFields) {
-		if (orderByFields != null) {
-			if (orderByFields.startsWith("-")) {
-				rootQ.orderBy(build.desc(getPath(orderByFields.substring(1))));
-			} else {
-				rootQ.orderBy(build.asc(getPath(orderByFields)));
+	private void prepareQuery(CriteriaQuery selectQ, Root selectRoot, Map<Attribute, Join> joins) {
+
+		buildPredicate(selectQ, selectRoot, joins);
+
+		if (this.selectFields != null && this.selectFields.length > 0) {
+			List<Selection<?>> multiSelection = new ArrayList<>();
+			for (String f : selectFields) {
+				Matcher m = AGGREGATE_FUNCTION.matcher(f);
+				if (m.matches()) {
+					switch (m.group("fn")) {
+						case "count":
+							multiSelection.add(build.count(getPath(m.group("field"), selectRoot, joins)));
+							break;
+						case "sum":
+							multiSelection.add(build.sum(getPath(m.group("field"), selectRoot, joins)));
+							break;
+						case "min":
+							multiSelection.add(build.min(getPath(m.group("field"), selectRoot, joins)));
+							break;
+						case "max":
+							multiSelection.add(build.max(getPath(m.group("field"), selectRoot, joins)));
+							break;
+						case "avg":
+							multiSelection.add(build.avg(getPath(m.group("field"), selectRoot, joins)));
+							break;
+					}
+				} else {
+					multiSelection.add(selectRoot.get(f));
+				}
 			}
-		}
-		return this;
-	}
-
-	/**
-	 * @param distinctFields
-	 * @return
-	 * @throws IllegalArgumentException if the field is not part of the entity
-	 */
-	public JpaELFilterImpl distinct(String... distinctFields) {
-		isDistinctQuery = true;
-		multiSelection.clear();
-		if (distinctFields != null) {
-			for (String f : distinctFields) {
-				multiSelection.add(resultRoot.get(f));
-			}
-		}
-
-		return this;
-	}
-
-	/**
-	 * @param fields
-	 * @return
-	 * @throws IllegalArgumentException if the field is not part of the entity
-	 */
-	public JpaELFilterImpl<E,R> selectFields(String[] fields) {
-		multiSelection.clear();
-		for (String f : fields) {
-			multiSelection.add(resultRoot.get(f));
-		}
-		return this;
-	}
-
-
-
-	public JpaELFilterImpl<E,R> groupBy(String[] fields, String aggregate, String[] groupBy) {
-		multiSelection.clear();
-
-		for (String f : fields) {
-			multiSelection.add(getPath(f));
-		}
-
-		Matcher m = AGGREGATE_FUNCTION.matcher(aggregate);
-		if (m.matches()) {
-			switch (m.group("fn")) {
-				case "count":
-					multiSelection.add(build.count(getPath(m.group("field"))));
-					break;
-				case "sum":
-					multiSelection.add(build.sum(getPath(m.group("field"))));
-					break;
-				case "min":
-					multiSelection.add(build.min(getPath(m.group("field"))));
-					break;
-				case "max":
-					multiSelection.add(build.max(getPath(m.group("field"))));
-					break;
-				case "avg":
-					multiSelection.add(build.avg(getPath(m.group("field"))));
-					break;
-			}
-
-			List<Expression<?>> groupings = new ArrayList<>();
-			Arrays.stream(groupBy).map(f -> getPath(f)).forEach(p -> groupings.add(p));
-			critQ.groupBy(groupings);
-
-		}
-		return this;
-	}
-
-
-	private TypedQuery<R> prepareQuery(boolean distinct, List<Selection<?>> selections) {
-		if (selections.size() == 1) {
-			rootQ.select((Selection<? extends R>) selections.get(0));
-		} else if (!selections.isEmpty()) {
-			rootQ.multiselect(selections);
+			selectQ.multiselect(multiSelection);
 		} else {
-			rootQ.select((Selection<? extends R>) rootRoot);
+			selectQ.select(selectRoot).distinct(true);
 		}
-		if (critQ != rootQ) {
-			((Subquery) critQ).select(resultRoot).distinct(false);
-			rootQ.where(build.exists((Subquery) critQ));
+	}
+
+	private void prepareGroupBy(AbstractQuery selectQ, Root selectRoot, Map<Attribute, Join> joins) {
+		if (groupByFields != null && groupByFields.length > 0) {
+			List<Expression> groupings =
+					Arrays.stream(groupByFields).map(f -> getPath(f, selectRoot, joins)).collect(Collectors.toList());
+			selectQ.groupBy(groupings);
+		}
+	}
+
+	private <T> TypedQuery<T> prepareSelect(Class<T> resultClass) {
+		Map<Attribute, Join> joins = new HashMap<>();
+
+		CriteriaQuery selectQ = build.createQuery(resultClass);
+		Root<E> selectRoot = selectQ.from(this.entityClass);
+		prepareQuery(selectQ, selectRoot, joins);
+
+		if (orderByFields != null && orderByFields.length > 0) {
+			List<Order> orders = new ArrayList<>();
+			for (String o : orderByFields) {
+
+				if (o.startsWith("-")) {
+					orders.add(build.desc(getPath(o.substring(1), selectRoot, joins)));
+				} else {
+					orders.add(build.asc(getPath(o, selectRoot, joins)));
+				}
+			}
+			selectQ.orderBy(orders);
 		}
 
-		rootQ.distinct(distinct);
-		return em.createQuery(rootQ);
+		prepareGroupBy(selectQ, selectRoot, joins);
+		return em.createQuery(selectQ);
+	}
+
+	public <T> T getSingleResult(Class<T> resultClass) {
+		return prepareSelect(resultClass).getSingleResult();
+	}
+
+	public <T> List<T> getResultList(Class<T> resultClass, int limit, int skip) {
+		return getResultList(resultClass, limit, skip, null);
+	}
+
+	public <T> List<T> getResultList(Class<T> resultClass, int limit, int skip, EntityGraph graph) {
+		return prepareSelect(resultClass).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
 	}
 
 	public Long count() {
-		Type idType = resultRoot.getModel().getIdType();
-		TypedQuery countQ;
+
+		Map<Attribute, Join> joins = new HashMap<>();
+
+		CriteriaQuery<Long> countQ = build.createQuery(Long.class);
+		Root<E> countRoot = countQ.from(this.entityClass);
+
+		Type idType = countRoot.getModel().getIdType();
 
 		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
-			countQ = prepareQuery(false, Arrays.asList(build.countDistinct(resultRoot)));
+			prepareQuery(countQ, countRoot, joins);
+			countQ.select(build.countDistinct(countRoot));
+			return em.createQuery(countQ).getSingleResult();
 		} else {
+			Subquery countSubQ = countQ.subquery(entityClass);
+			countSubQ.from(entityClass);
+			Root countSubRoot = countSubQ.correlate(countRoot);
+
+			buildPredicate(countSubQ, countSubRoot, joins);
+			prepareGroupBy(countSubQ, countSubRoot, joins);
+
 			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
-			Attribute firstPkField = resultRoot.getModel().getIdClassAttributes().iterator().next();
-
+			Attribute firstPkField = countRoot.getModel().getIdClassAttributes().iterator().next();
 			// SELECT COUNT(t0.KEY1) FROM COMPOSITEKEYINSTANCE t0 WHERE EXISTS (SELECT DISTINCT t1.KEY1 FROM {oj COMPOSITEKEYINSTANCE t1 LEFT OUTER JOIN ONETOMANYCOMPOSITEINSTANCE t2 ON ((t2.key1 = t1.KEY1) AND (t2.key2 = t1.KEY2))} WHERE (((t0.KEY1 = t1.KEY1) AND (t0.KEY2 = t1.KEY2)) AND (t2.ASTRING = ?)))
-			((Subquery) critQ).select(resultRoot.get(firstPkField.getName())).distinct(true);
-			rootQ.where(build.exists((Subquery) critQ));
-			rootQ.select((Selection<? extends R>) build.count(rootRoot.get(firstPkField.getName())));
-			countQ = em.createQuery(rootQ);
+			countSubQ.select(countSubRoot.get(firstPkField.getName())).distinct(true);
+			countQ.where(build.exists(countSubQ));
 
-			((Subquery) critQ).select(resultRoot).distinct(false);
-			rootQ.where(build.exists((Subquery) critQ));
+			countQ.select(build.count(countRoot.get(firstPkField.getName())));
+			return em.createQuery(countQ).getSingleResult();
 		}
-
-		return (Long) countQ.getSingleResult();
-
 	}
 
-	public R getSingleResult() {
-		return prepareQuery(true, multiSelection).getSingleResult();
-	}
-
-	public List<R> getResultList(int limit, int skip) {
-		return getResultList(limit, skip, null);
-	}
-
-	public List<R> getResultList(int limit, int skip, EntityGraph graph) {
-		return prepareQuery(true, multiSelection).setMaxResults(limit).setFirstResult(skip).setHint("javax.persistence.loadgraph", graph).getResultList();
-	}
 }
