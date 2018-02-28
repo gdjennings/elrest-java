@@ -5,8 +5,11 @@
 */
 package com.github.gdjennings.elrest;
 
+import org.hibernate.Session;
+
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.Tuple;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.AbstractQuery;
@@ -37,8 +40,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -463,27 +468,38 @@ public class JpaELFilterImpl<E> extends ELFilter<E> {
 
 		Type idType = countRoot.getModel().getIdType();
 
-		if (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
+		if (supportsCountDistinct() || (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType()))) {
 			prepareQuery(countQ, countRoot, joins);
 			countQ.select(build.countDistinct(countRoot));
 			return em.createQuery(countQ).getSingleResult();
 		} else {
-			Subquery countSubQ = countQ.subquery(entityClass);
-			countSubQ.from(entityClass);
-			Root countSubRoot = countSubQ.correlate(countRoot);
+			Iterator<SingularAttribute<? super E, ?>> pkFields = countRoot.getModel().getIdClassAttributes().iterator();
+			SingularAttribute first = pkFields.next();
 
-			buildPredicate(countSubQ, countSubRoot, joins);
-			prepareGroupBy(countSubQ, countSubRoot, joins);
+			List<Expression<?>> groupBys = new ArrayList<>();
+			while (pkFields.hasNext()) {
+				groupBys.add(countRoot.get(pkFields.next().getName()));
+			}
 
-			// hibernate generates invalid SQL for SQLServer and ORACLE when doing countDistinct on entities with composite keys
-			Attribute firstPkField = countRoot.getModel().getIdClassAttributes().iterator().next();
-			// SELECT COUNT(t0.KEY1) FROM COMPOSITEKEYINSTANCE t0 WHERE EXISTS (SELECT DISTINCT t1.KEY1 FROM {oj COMPOSITEKEYINSTANCE t1 LEFT OUTER JOIN ONETOMANYCOMPOSITEINSTANCE t2 ON ((t2.key1 = t1.KEY1) AND (t2.key2 = t1.KEY2))} WHERE (((t0.KEY1 = t1.KEY1) AND (t0.KEY2 = t1.KEY2)) AND (t2.ASTRING = ?)))
-			countSubQ.select(countSubRoot.get(firstPkField.getName())).distinct(true);
-			countQ.where(build.exists(countSubQ));
+			prepareQuery(countQ, countRoot, joins);
 
-			countQ.select(build.count(countRoot.get(firstPkField.getName())));
+			countQ.groupBy(groupBys);
+
+			countQ.select(build.sum(build.countDistinct(countRoot.get(first.getName())))).distinct(false);
+
 			return em.createQuery(countQ).getSingleResult();
 		}
+	}
+
+
+	private boolean supportsCountDistinct() {
+		//take from current EntityManager current DB Session
+		EntityManagerFactory emf = em.getEntityManagerFactory();
+		Map<String, Object> emfProperties = emf.getProperties();
+
+		String driverClass = (String)emfProperties.get("javax.persistence.jdbc.driver");
+		System.out.println(driverClass);
+		return !"oracle.jdbc.OracleDriver".equals(driverClass);
 	}
 
 }
