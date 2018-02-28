@@ -32,8 +32,8 @@ public class ExpressionImplTest {
 		Instance e2 = new Instance();
 		e2.setName("testName2");
 
-		ELFilterImpl el = new ELFilterImpl("name eq \"testName1\"", new HashMap<>());
-		List r = (List)el.filter(Arrays.asList(e1, e2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name eq \"testName1\"");
+		List r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -51,43 +51,43 @@ public class ExpressionImplTest {
 		e2.setName("testName2");
 		e2.setaLong(2L);
 
-		ELFilterImpl el = new ELFilterImpl("aLong gte 2", new HashMap<>());
-		List r = (List)el.filter(Arrays.asList(e1, e2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong gte 2");
+		List r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new ELFilterImpl("aLong ge 2", new HashMap<>());
-		r = (List)el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong ge 2");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new ELFilterImpl("aLong gt 1", new HashMap<>());
-		r = (List)el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong gt 1");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e2.getName(), ((Instance) r.get(0)).getName());
 
-		el = new ELFilterImpl("aLong lte 1", new HashMap<>());
-		r = (List)el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong lte 1");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 
-		el = new ELFilterImpl("aLong le 1", new HashMap<>());
-		r = (List)el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong le 1");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals(e1.getName(), ((Instance) r.get(0)).getName());
 
-		el = new ELFilterImpl("aLong lt 2", new HashMap<>());
-		r = (List)el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aLong lt 2");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -105,8 +105,8 @@ public class ExpressionImplTest {
 		e2.setName("testName2");
 		e2.setaBool(false);
 
-		ELFilterImpl el = new ELFilterImpl("aBool eq true", new HashMap<>());
-		List r = (List)el.filter(Arrays.asList(e1, e2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("aBool eq true");
+		List r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -126,8 +126,8 @@ public class ExpressionImplTest {
 		Instance e3 = new Instance();
 		e3.setName("testName3");
 
-		ELFilterImpl el = new ELFilterImpl("name in \"testName1,testName2\"", new HashMap<>());
-		List r = (List)el.filter(Arrays.asList(e1, e2, e3));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name in \"testName1,testName2\"");
+		List r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(2, r.size());
@@ -149,16 +149,16 @@ public class ExpressionImplTest {
 		e2.setField("A");
 		e2.setaBool(false);
 
-		ELFilterImpl el = new ELFilterImpl("name not in testName1");
-		List<Instance> r = (List<Instance>) el.filter(Arrays.asList(e1, e2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name not in testName1");
+		List<Instance> r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("testName2", r.get(0).getName());
 
 
-		el = new ELFilterImpl("name !in testName1");
-		r = (List<Instance>) el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name !in testName1");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -180,16 +180,16 @@ public class ExpressionImplTest {
 		e2.setField("A");
 		e2.setaBool(false);
 
-		ELFilterImpl el = new ELFilterImpl("name !eq testName1");
-		List<Instance> r = (List<Instance>) el.filter(Arrays.asList(e1, e2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name !eq testName1");
+		List<Instance> r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("testName2", r.get(0).getName());
 
 
-		el = new ELFilterImpl("name ne testName1");
-		r = (List<Instance>) el.filter(Arrays.asList(e1, e2));
+		el = new ELFilterImpl(Arrays.asList(e1, e2)).filter("name ne testName1");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -214,16 +214,16 @@ public class ExpressionImplTest {
 		e3.setNumber(3);
 		e3.setField("B");
 
-		ELFilterImpl el = new ELFilterImpl("name not like \"testName%\"");
-		List<Instance> r = (List<Instance>) el.filter(Arrays.asList(e1, e2, e3));
+		ELFilter el = new ELFilterImpl(Arrays.asList(e1, e2, e3)).filter("name not like \"testName%\"");
+		List<Instance> r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("otherName", r.get(0).getName());
 
 
-		el = new ELFilterImpl("name !like \"testName%\"");
-		r = (List<Instance>) el.filter(Arrays.asList(e1, e2, e3));
+		el = new ELFilterImpl(Arrays.asList(e1, e2, e3)).filter("name !like \"testName%\"");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 
 		assertNotNull(r);
 		assertEquals(1, r.size());
@@ -246,16 +246,16 @@ public class ExpressionImplTest {
 		Thread.sleep(1);
 
 		System.out.println("createdDate lt "+Calendar.getInstance().getTimeInMillis());
-		ELFilterImpl el = new ELFilterImpl("createdDate lt "+Calendar.getInstance().getTimeInMillis());
-		List<User> r = (List<User>) el.filter(Arrays.asList(u1, u2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("createdDate lt "+Calendar.getInstance().getTimeInMillis());
+		List<User> r = el.getResultList(User.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getUsername());
 
 
 		System.out.println("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
-		el = new ELFilterImpl("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
-		r = (List<User>) el.filter(Arrays.asList(u1, u2));
+		el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("createdDate lt \""+ DatatypeConverter.printDateTime(Calendar.getInstance())+"\"");
+		r = el.getResultList(User.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getUsername());
@@ -274,36 +274,36 @@ public class ExpressionImplTest {
 		Instance u2 = new Instance();
 
 		System.out.println("aDate ne null");
-		ELFilterImpl el = new ELFilterImpl("aDate ne null");
-		List<Instance> r = (List<Instance>) el.filter(Arrays.asList(u1, u2));
+		ELFilter el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("aDate ne null");
+		List<Instance> r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 		System.out.println("field ne null");
-		el = new ELFilterImpl("field ne null");
-		r = (List<Instance>) el.filter(Arrays.asList(u1, u2));
+		el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("field ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 		System.out.println("number ne null");
-		el = new ELFilterImpl("number ne null");
-		r = (List<Instance>) el.filter(Arrays.asList(u1, u2));
+		el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("number ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(2, r.size());
 
 		System.out.println("autoboxedLong ne null");
-		el = new ELFilterImpl("aLong ne null");
-		r = (List<Instance>) el.filter(Arrays.asList(u1, u2));
+		el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("aLong ne null");
+		r = el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
 
 
 		System.out.println("anEnum ne null");
-		el = new ELFilterImpl("anEnum ne null");
-		r = (List<Instance>) el.filter(Arrays.asList(u1, u2));
+		el = new ELFilterImpl(Arrays.asList(u1, u2)).filter("anEnum ne null");
+		r = (List<Instance>) el.getResultList(Instance.class, Integer.MAX_VALUE, 0);
 		assertNotNull(r);
 		assertEquals(1, r.size());
 		assertEquals("u1", r.get(0).getName());
