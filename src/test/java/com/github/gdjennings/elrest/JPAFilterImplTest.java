@@ -7,6 +7,7 @@ package com.github.gdjennings.elrest;
 
 
 import com.github.gdjennings.elrest.test.CompositeKeyInstance;
+import com.github.gdjennings.elrest.test.CompositePKWithoutIdClass;
 import com.github.gdjennings.elrest.test.Instance;
 import com.github.gdjennings.elrest.test.OneToManyCompositeInstance;
 import com.github.gdjennings.elrest.test.OneToManyInstance;
@@ -529,6 +530,42 @@ public class JPAFilterImplTest {
 		assertEquals(1, counted);
 	}
 
+	@ParameterizedTest(name="{0}")
+	@ValueSource(strings = { "hibernate", "eclipselink" })
+	public void testSimpleCountOfMultiId(String provider) throws Exception {
+
+//		System.setProperty("com.github.gdjennings.elrest.no_countdistinct", "true");
+		try {
+			CompositePKWithoutIdClass i1 = new CompositePKWithoutIdClass();
+			i1.setKey1("i1k1");
+			i1.setKey2("i1k2");
+			i1.setOther("other");
+			em.persist(i1);
+
+			CompositePKWithoutIdClass i4 = new CompositePKWithoutIdClass();
+			i4.setKey1("i1k1");
+			i4.setKey2("i1k4");
+			i4.setOther("other");
+			em.persist(i4);
+
+
+			CompositePKWithoutIdClass i5 = new CompositePKWithoutIdClass();
+			i5.setKey1("i1k5");
+			i5.setKey2("i1k2");
+			i5.setOther("another");
+			em.persist(i5);
+
+			em.flush();
+			ELFilter el = new JpaELFilterImpl(em, CompositePKWithoutIdClass.class)
+					.filter("other eq \"other\"");
+			long counted = el.count();
+
+			assertEquals(2, counted);
+		} finally {
+//			System.clearProperty("com.github.gdjennings.elrest.no_countdistinct");
+
+		}
+	}
 
 
 	@ParameterizedTest(name="{0}")

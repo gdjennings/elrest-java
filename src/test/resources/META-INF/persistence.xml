@@ -9,6 +9,7 @@
 		<class>com.github.gdjennings.elrest.test.Instance</class>
 		<class>com.github.gdjennings.elrest.test.OneToManyInstance</class>
 		<class>com.github.gdjennings.elrest.test.InstanceWithNumericPrimaryKey</class>
+		<class>com.github.gdjennings.elrest.test.CompositePKWithoutIdClass</class>
 		<class>com.github.gdjennings.elrest.test.User</class>
 		<class>com.github.gdjennings.elrest.test.YesNoConverter</class>
 		<class>com.github.gdjennings.elrest.test.CompositeKeyInstance</class>
@@ -33,6 +34,7 @@
 		<class>com.github.gdjennings.elrest.test.Instance</class>
 		<class>com.github.gdjennings.elrest.test.OneToManyInstance</class>
 		<class>com.github.gdjennings.elrest.test.InstanceWithNumericPrimaryKey</class>
+		<class>com.github.gdjennings.elrest.test.CompositePKWithoutIdClass</class>
 		<class>com.github.gdjennings.elrest.test.User</class>
 		<class>com.github.gdjennings.elrest.test.YesNoConverter</class>
 		<class>com.github.gdjennings.elrest.test.CompositeKeyInstance</class>

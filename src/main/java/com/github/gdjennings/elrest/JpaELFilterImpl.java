@@ -5,12 +5,9 @@
 */
 package com.github.gdjennings.elrest;
 
-import org.hibernate.Session;
-
 import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.Tuple;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.AbstractQuery;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -23,7 +20,6 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Selection;
-import javax.persistence.criteria.Subquery;
 import javax.persistence.metamodel.Attribute;
 import javax.persistence.metamodel.CollectionAttribute;
 import javax.persistence.metamodel.EntityType;
@@ -465,15 +461,23 @@ public class JpaELFilterImpl<E> extends ELFilter<E> {
 
 		CriteriaQuery<Long> countQ = build.createQuery(Long.class);
 		Root<E> countRoot = countQ.from(this.entityClass);
+		EntityType<E> countType = countRoot.getModel();
+		Type idType = countType.getIdType();
 
-		Type idType = countRoot.getModel().getIdType();
-
-		if (supportsCountDistinct() || (idType != null && Type.PersistenceType.BASIC.equals(idType.getPersistenceType()))) {
+		if ((countType.hasSingleIdAttribute() && Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) ||
+				!needsCountDistinctWorkaround()) {
+			// types with a single basic id or databases that can count distinct multiple columns
 			prepareQuery(countQ, countRoot, joins);
 			countQ.select(build.countDistinct(countRoot));
 			return em.createQuery(countQ).getSingleResult();
 		} else {
-			Iterator<SingularAttribute<? super E, ?>> pkFields = countRoot.getModel().getIdClassAttributes().iterator();
+			final Set idAttributes;
+			if (idType == null || Type.PersistenceType.BASIC.equals(idType.getPersistenceType())) {
+				idAttributes = countType.getSingularAttributes().stream().filter(SingularAttribute::isId).collect(Collectors.toSet());
+			} else {
+				idAttributes = countRoot.getModel().getIdClassAttributes();
+			}
+			Iterator<SingularAttribute<? super E, ?>> pkFields = idAttributes.iterator();
 			SingularAttribute first = pkFields.next();
 
 			List<Expression<?>> groupBys = new ArrayList<>();
@@ -487,19 +491,25 @@ public class JpaELFilterImpl<E> extends ELFilter<E> {
 
 			countQ.select(build.sum(build.countDistinct(countRoot.get(first.getName())))).distinct(false);
 
-			return em.createQuery(countQ).getSingleResult();
+			List<Long> counts = em.createQuery(countQ).getResultList();
+
+			return counts.get(0);
 		}
 	}
 
 
-	private boolean supportsCountDistinct() {
+	private boolean needsCountDistinctWorkaround() {
 		//take from current EntityManager current DB Session
+		boolean override = Boolean.getBoolean("com.github.gdjennings.elrest.no_countdistinct");
+		if (override) {
+			return true;
+		}
+
 		EntityManagerFactory emf = em.getEntityManagerFactory();
 		Map<String, Object> emfProperties = emf.getProperties();
 
 		String driverClass = (String)emfProperties.get("javax.persistence.jdbc.driver");
-		System.out.println(driverClass);
-		return !"oracle.jdbc.OracleDriver".equals(driverClass);
+		return "oracle.jdbc.OracleDriver".equals(driverClass);
 	}
 
 }
